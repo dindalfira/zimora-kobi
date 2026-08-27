@@ -51,7 +51,7 @@
 
 
                 <h1 class="mt-2 text-md font-bold leading-5 text-sky-950 sm:text-base">
-                    Rapat Pembentukan Tim Kerja
+                    Rapat Monitoring dan Evaluasi Pembangunan Zona Integritas
                 </h1>
 
             </div>
@@ -111,11 +111,11 @@
                             </p>
 
                             <h3 class="mt-1 text-base font-bold text-sky-950">
-                                Rapat Pembentukan Tim Kerja
+                                Rapat Monitoring dan Evaluasi Pembangunan Zona Integritas
                             </h3>
 
                             <p class="mt-1 text-xs leading-5 text-slate-500">
-                                Terbentuknya Tim Kerja Pembangunan ZI yang efektif dan efisien
+                                Terdapat monitoring dan evaluasi terhadap pembangunan Zona Integritas
                             </p>
                         </div>
 
@@ -312,7 +312,7 @@
 
                                  </div>
                                 <p class="mt-2 text-sm font-semibold text-slate-700">
-                                    18 Agustus 2026
+                                    15 September 2026
                                 </p>
 
                             </div>
@@ -333,7 +333,7 @@
                                 </div>
 
                                 <p class="mt-2 text-sm font-semibold text-slate-700">
-                                    Bulanan
+                                    Triwulanan
                                 </p>
 
                             </div>
@@ -382,7 +382,7 @@
                                     border border-slate-200 bg-slate-50 px-4 py-3">
                             <div class="min-w-0 flex-1">
                                 <p class="text-xs text-slate-600">
-                                    Notulen Rapat
+                                    Undangan, daftar hadir, dan notulen pelaksanaan rapat evaluasi.
                                 </p>
 
                                 <div class="mt-2 flex flex-wrap gap-2">
@@ -467,7 +467,7 @@
                                         </p>
 
                                         <p class="mt-1 text-xs font-semibold text-slate-700">
-                                            A.I.1.i.a
+                                            A.I.1.iii.b
                                         </p>
 
                                     </div>
@@ -480,8 +480,7 @@
                                         </p>
 
                                         <p class="mt-1 text-xs leading-5 text-slate-600">
-                                            Unit kerja telah membentuk tim untuk melakukan
-                                            pembangunan Zona Integritas.
+                                            Terdapat monitoring dan evaluasi terhadap pembangunan Zona Integritas
                                         </p>
 
                                     </div>
@@ -584,11 +583,11 @@
                                         <div>
 
                                             <p class="text-xs font-bold text-slate-700">
-                                                Pelaksanaan ke-1
+                                                Triwulan I
                                             </p>
 
                                             <p class="mt-0.5 text-[9px] text-slate-400">
-                                                3 Januari 2026
+                                                16 Maret 2026
                                             </p>
 
                                         </div>
@@ -638,7 +637,7 @@
                                             </p>
 
                                             <p class="mt-1 text-[9px] text-slate-400">
-                                                2.4 MB • 5 Januari 2026
+                                                2.4 MB • 16 Maret 2026
                                             </p>
 
                                         </div>
@@ -708,7 +707,6 @@
                             {{-- =================================================
                                 TRIWULAN II — PERIODE AKTIF
                             ================================================== --}}                              
-
                             <div class="border-b border-slate-200 bg-white">
 
                                 {{-- Header periode --}}
@@ -729,27 +727,18 @@
 
                                         <div>
 
-                                            <div class="flex items-center gap-2">
-
-                                                <p class="text-xs font-bold text-slate-700">
-                                                    Pelaksanaan ke-2
-                                                </p>
-
-                                                <span class="rounded-full bg-emerald-50
-                                                            px-2 py-0.5 text-[8px]
-                                                            font-bold text-emerald-700">
-                                                    PERIODE AKTIF
-                                                </span>
-
-                                            </div>
+                                            <p class="text-xs font-bold text-slate-700">
+                                                Triwulan II
+                                            </p>
 
                                             <p class="mt-0.5 text-[9px] text-slate-400">
-                                                3 April 2026
+                                                10 Juni 2026
                                             </p>
 
                                         </div>
 
                                     </div>
+
 
                                     {{-- Status --}}
                                     <div class="text-right">
@@ -764,6 +753,161 @@
                                         </div>
 
                                     </div>
+
+                                </div>
+
+
+                                {{-- Isi --}}
+                                <div class="p-4">
+
+                                    <div class="flex items-center gap-3
+                                                rounded-lg border border-slate-200
+                                                bg-white p-3">
+
+                                        <div class="flex h-9 w-9 shrink-0 items-center
+                                                    justify-center rounded-lg bg-blue-50">
+
+                                            <i data-lucide="file-text"
+                                            class="h-4 w-4 text-blue-500">
+                                            </i>
+
+                                        </div>
+
+
+                                        <div class="min-w-0 flex-1">
+
+                                            <p class="truncate text-xs font-semibold
+                                                    text-slate-700">
+                                                Notulen_Rapat_Triwulan_II.pdf
+                                            </p>
+
+                                            <p class="mt-1 text-[9px] text-slate-400">
+                                                2.1 MB • 10 Juni 2026
+                                            </p>
+
+                                        </div>
+
+
+                                        <div class="flex shrink-0 items-center gap-1">
+
+                                            {{-- Preview --}}
+                                            <button
+                                                type="button"
+                                                class="inline-flex items-center gap-1.5
+                                                    rounded-md border border-sky-200
+                                                    bg-sky-50 px-2 py-1
+                                                    text-[9px] font-semibold
+                                                    text-sky-700
+                                                    transition hover:bg-sky-100">
+
+                                                <i data-lucide="eye"
+                                                class="h-3.5 w-3.5">
+                                                </i>
+
+                                            </button>
+
+
+                                            {{-- Unduh --}}
+                                            <button
+                                                type="button"
+                                                class="inline-flex items-center gap-1.5
+                                                    rounded-md border border-emerald-200
+                                                    bg-emerald-50 px-2 py-1
+                                                    text-[9px] font-semibold
+                                                    text-emerald-700
+                                                    transition hover:bg-emerald-100">
+
+                                                <i data-lucide="download"
+                                                class="h-3.5 w-3.5">
+                                                </i>
+
+                                            </button>
+
+
+                                            {{-- Ganti --}}
+                                            <button
+                                                type="button"
+                                                class="inline-flex items-center gap-1.5
+                                                    rounded-md border border-amber-200
+                                                    bg-amber-50 px-2 py-1
+                                                    text-[9px] font-semibold
+                                                    text-amber-700
+                                                    transition hover:bg-amber-100">
+
+                                                <i data-lucide="pencil"
+                                                class="h-3.5 w-3.5">
+                                                </i>
+
+                                            </button>
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+
+                            {{-- =================================================
+                                TRIWULAN III — BELUM DIMULAI
+                            ================================================== --}}
+
+                            <div class="border-b border-slate-200 bg-white">
+
+                                {{-- Header periode --}}
+                                <div class="flex items-center justify-between
+                                            border-b border-slate-100 bg-slate-50
+                                            px-4 py-3">
+
+                                    <div class="flex items-center gap-3">
+
+                                        <div class="flex h-7 w-7 items-center justify-center
+                                                    rounded-lg bg-sky-100">
+
+                                            <span class="text-[10px] font-bold text-sky-700">
+                                                III
+                                            </span>
+
+                                        </div>
+
+                                        <div>
+
+                                            <div class="flex items-center gap-2">
+
+                                                <p class="text-xs font-bold text-slate-700">
+                                                    Triwulan III
+                                                </p>
+
+                                                <span class="rounded-full bg-emerald-50
+                                                            px-2 py-0.5 text-[8px]
+                                                            font-bold text-emerald-700">
+                                                    PERIODE AKTIF
+                                                </span>
+
+                                            </div>
+
+                                            <p class="mt-0.5 text-[9px] text-slate-400">
+                                                15 September 2026
+                                            </p>
+
+                                        </div>
+
+                                    </div>
+
+                                    {{-- Status --}}
+                                    {{-- <div class="text-right">
+                                        <div class="mt-1 flex justify-end">
+
+                                            <span class="rounded-full bg-emerald-50
+                                                        px-2 py-0.5 text-[8px]
+                                                        font-bold text-emerald-700">
+                                                Selesai
+                                            </span>
+
+                                        </div>
+
+                                    </div> --}}
 
 
                                 </div>
@@ -825,50 +969,6 @@
                                     </label>
 
                                 </div>
-                            </div>
-
-
-                            {{-- =================================================
-                                TRIWULAN III — BELUM DIMULAI
-                            ================================================== --}}
-                            <div class="border-b border-slate-200 bg-white">
-
-                                <div class="flex items-center justify-between
-                                            px-4 py-3">
-
-                                    <div class="flex items-center gap-3">
-
-                                        <div class="flex h-7 w-7 items-center justify-center
-                                                    rounded-lg bg-slate-100">
-
-                                            <span class="text-[10px] font-bold text-slate-500">
-                                                III
-                                            </span>
-
-                                        </div>
-
-                                        <div>
-
-                                            <p class="text-xs font-bold text-slate-600">
-                                                Triwulan III
-                                            </p>
-
-                                            <p class="mt-0.5 text-[9px] text-slate-400">
-                                                Juli – September 2026
-                                            </p>
-
-                                        </div>
-
-                                    </div>
-
-
-                                    <span class="rounded-full bg-slate-100 px-2.5 py-1
-                                                text-[9px] font-semibold text-slate-500">
-                                        Belum Dimulai
-                                    </span>
-
-                                </div>
-
                             </div>
 
 

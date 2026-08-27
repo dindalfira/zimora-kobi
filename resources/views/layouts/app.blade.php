@@ -38,6 +38,39 @@
     </main>
 
     @stack('scripts') 
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        function confirmLogout() {
+            Swal.fire({
+                title: 'Konfirmasi Logout',
+                text: 'Apakah Anda yakin ingin keluar dari sistem?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Ya',
+                cancelButtonText: 'Batal',
+                reverseButtons: true,
+                buttonsStyling: false,
+
+                customClass: {
+                    confirmButton:
+                        'rounded-lg bg-slate-700 px-4 py-2 text-xs font-medium text-white hover:bg-sky-600',
+
+                    cancelButton:
+                        'mr-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50'
+                }
+            }).then((result) => {
+
+                if (result.isConfirmed) {
+                    document.getElementById('logout-form').submit();
+                }
+
+            });
+        }
+    </script>
+
 </body>
 
 </html>
+

@@ -54,8 +54,8 @@
     <div class="flex flex-wrap items-center gap-5 px-1">
 
         <div class="flex items-center gap-2 text-xs text-slate-500">
-            <span class="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
-            Akan Datang
+            <span class="h-2.5 w-2.5 rounded-full bg-slate-500"></span>
+            Menunggu
         </div>
 
         <div class="flex items-center gap-2 text-xs text-slate-500">
@@ -64,13 +64,13 @@
         </div>
 
         <div class="flex items-center gap-2 text-xs text-slate-500">
-            <span class="h-2.5 w-2.5 rounded-full bg-rose-500"></span>
-            Terlambat
+            <span class="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
+            Selesai
         </div>
 
         <div class="flex items-center gap-2 text-xs text-slate-500">
-            <span class="h-2.5 w-2.5 rounded-full bg-sky-950"></span>
-            Selesai
+            <span class="h-2.5 w-2.5 rounded-full bg-red-950"></span>
+            Terlambat
         </div>
 
     </div>
@@ -135,8 +135,8 @@
                                 :class="{
                                     'border-emerald-500 bg-emerald-50': activity.status === 'selesai',
                                     'border-blue-500 bg-blue-50': activity.status === 'berlangsung',
-                                    'border-rose-500 bg-rose-50': activity.status === 'terlambat',
-                                    'border-sky-950 bg-slate-100': activity.status === 'menunggu'
+                                    'border-red-500 bg-rose-50': activity.status === 'terlambat',
+                                    'border-slate-500 bg-slate-50': activity.status === 'menunggu'
                                 }"
                             >
 
@@ -145,8 +145,8 @@
                                 :class="{
                                     'text-emerald-800': activity.status === 'selesai',
                                     'text-blue-800': activity.status === 'berlangsung',
-                                    'text-rose-800': activity.status === 'terlambat',
-                                    'text-sky-950': activity.status === 'menunggu'
+                                    'text-red-800': activity.status === 'terlambat',
+                                    'text-slate-800': activity.status === 'menunggu'
                                 }"
                                 x-text="activity.name"
                             ></div>

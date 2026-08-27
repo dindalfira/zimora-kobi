@@ -1,13 +1,34 @@
 <?php
 
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\JadwalController;
+use App\Http\Controllers\KegiatanController;
+use App\Http\Controllers\LKEController;
+use App\Http\Controllers\PelaksanaanKegiatanController;
+use App\Http\Controllers\PertanyaanLKEController;
 use Illuminate\Support\Facades\Route;
 
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\KegiatanController;
-use App\Http\Controllers\PelaksanaanKegiatanController;
-use App\Http\Controllers\JadwalController;
+// =====================================================
+// LOGIN DAN LOGOUT
+// =====================================================
 
+Route::get('/login', [AuthController::class, 'showLogin'])
+    ->name('login');
 
+Route::post('/login', [AuthController::class, 'login'])
+    ->name('login.process');
+
+Route::post('/logout', [AuthController::class, 'logout'])
+    ->name('logout');
+
+Route::middleware('auth')->group(function () {
+
+    Route::get('/dashboard', function () {
+        return view('dashboard');
+    })->name('dashboard');
+
+});
 
 // =====================================================
 // MONITORING KEGIATAN
@@ -88,34 +109,13 @@ Route::get(
 
 
 // =====================================================
-// LOGIN
-// =====================================================
-
-Route::get('/login', [AuthController::class, 'showLogin'])
-    ->name('login');
-
-Route::post('/login', [AuthController::class, 'login'])
-    ->name('login.process');
-
-Route::post('/logout', [AuthController::class, 'logout'])
-    ->name('logout');
-
-Route::middleware('auth')->group(function () {
-
-    Route::get('/dashboard', function () {
-        return view('dashboard');
-    })->name('dashboard');
-
-});
-
-
-// =====================================================
 // DASHBOARD
 // =====================================================
 
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->name('dashboard');
+Route::get('/dashboard', [
+    DashboardController::class,
+    'index'
+])->name('dashboard');
 
 
 // =====================================================
@@ -134,18 +134,47 @@ Route::get('/jadwal', [JadwalController::class, 'index'])
 // LKE
 // =====================================================
 
-Route::get('/lke', function () {
-    return view('lke');
-})->name('lke');
+Route::get('/lke', [LKEController::class, 'index'])
+    ->name('lke');
+
+Route::put('/lke/{id}', [PertanyaanLKEController::class, 'update'])
+    ->name('lke.update');
+
+Route::get('/lke/{id_pertanyaan}', [LKEController::class, 'detail'])
+    ->name('lke.detail');
+
+Route::get('/detail-lke/{id_pertanyaan}', [LKEController::class, 'detail']
+    )->name('detail.lke');
+
+Route::get('/lke/update-status',[PertanyaanLKEController::class, 'updateStatusPertanyaan']
+    )->name('lke.update-status');
+
+Route::post('/lke/update-status',
+    [PertanyaanLKEController::class, 'updateStatusPertanyaan']
+)->name('lke.update-status');
+
+Route::post(
+    '/lke/{id}/pemeriksaan',
+    [PertanyaanLKEController::class, 'simpanPemeriksaan']
+)->name('lke.pemeriksaan.simpan');
+
+Route::post(
+    '/detail-lke/bukti-dukung/upload',
+    [PertanyaanLKEController::class, 'uploadBuktiDukung']
+)->name('bukti-dukung.upload');
 
 
 // =====================================================
 // DETAIL LKE
 // =====================================================
 
-Route::get('/detail-lke', function () {
-    return view('detail-lke');
-})->name('detail-lke');
+Route::get('/lke/{periode}', [LKEController::class, 'detail'])
+    ->name('lke.detail');
+
+Route::post(
+    '/bukti-dukung/upload',
+    [pertanyaanLKEController::class, 'upload']
+)->name('bukti-dukung.upload');
 
 
 // =====================================================

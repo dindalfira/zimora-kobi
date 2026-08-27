@@ -8,24 +8,24 @@ return new class extends Migration
 {
     public function up(): void
     {
-if (!Schema::hasTable('users')) {
-        Schema::create('users', function (Blueprint $table) {            $table->id();
+        if (!Schema::hasTable('users')) {
+            Schema::create('users', function (Blueprint $table) {            $table->id();
 
-            $table->string('name');
+                $table->string('name');
 
-            $table->string('username')->unique();
+                $table->string('username')->unique();
 
-            $table->string('email')->nullable()->unique();
+                $table->string('email')->nullable()->unique();
 
-            $table->string('password');
+                $table->string('password');
 
-            $table->string('role')->default('admin');
+                $table->string('role')->default('admin');
 
-            $table->rememberToken();
+                $table->rememberToken();
 
-            $table->timestamps();
-        });
-    }
+                $table->timestamps();
+            });
+        }
     }
 
     public function down(): void

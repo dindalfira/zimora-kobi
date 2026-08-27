@@ -51,7 +51,7 @@
 
 
                 <h1 class="mt-2 text-md font-bold leading-5 text-sky-950 sm:text-base">
-                    Rapat Pembentukan Tim Kerja
+                    Rapat Monitoring dan Evaluasi Pembangunan Zona Integritas
                 </h1>
 
             </div>
@@ -111,7 +111,7 @@
                             </p>
 
                             <h3 class="mt-1 text-base font-bold text-sky-950">
-                                Rapat Pembentukan Tim Kerja
+                                Rapat Monitoring dan Evaluasi Pembangunan Zona Integritas
                             </h3>
 
                             <p class="mt-1 text-xs leading-5 text-slate-500">

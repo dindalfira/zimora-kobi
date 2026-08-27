@@ -16,48 +16,46 @@
             </div>
         </div>
 
-        <section
-            x-data="{
-                pilar: 'Semua Pilar',
-                aspek: 'Semua Aspek',
-                area: 'Semua Area'
-            }"
+<section
+    x-data="{
+        aspek: @js(request('aspek', '')),
+        area: @js(request('area', '')),
+        pilar: @js(request('pilar', '')),
+
+        filter() {
+
+            const params = new URLSearchParams();
+
+            if (this.aspek) {
+                params.set('aspek', this.aspek);
+            }
+
+            if (this.area) {
+                params.set('area', this.area);
+            }
+
+            if (this.pilar) {
+                params.set('pilar', this.pilar);
+            }
+
+            window.location.href =
+                '{{ route('dashboard') }}?' + params.toString();
+        },
+
+        changeAspek() {
+            this.area = '';
+            this.pilar = '';
+            this.filter();
+        },
+
+        changeArea() {
+            this.pilar = '';
+            this.filter();
+        }
+    }"
             class="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm space-y-3">
 
             <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-
-                {{-- Pilar --}}
-                <div>
-                    <label class="mb-1 block text-[10px] font-medium text-slate-500">
-                        Pilar
-                    </label>
-
-                    <div class="relative w-full">
-                        <select
-                            x-model="pilar"
-                            class="w-full appearance-none rounded-lg border border-slate-200 bg-white 
-                                    px-3 py-2 pr-8 text-[11px] text-slate-600 outline-none transition 
-                                    focus:border-sky-500 focus:ring-2 focus:ring-sky-100">
-
-                            <option value="">Semua Pilar</option>
-                            <option value="Pilar 1">Pilar 1</option>
-                            <option value="Pilar 2">Pilar 2</option>
-                            <option value="Pilar 3">Pilar 3</option>
-                            <option value="Pilar 4">Pilar 4</option>
-                            <option value="Pilar 5">Pilar 5</option>
-                            <option value="Pilar 6">Pilar 6</option>
-
-                        </select>
-
-                        <i
-                            data-lucide="chevron-down"
-                            class="pointer-events-none absolute right-3 top-1/2
-                                h-3.5 w-3.5 -translate-y-1/2
-                                text-slate-400">
-                        </i>
-                    </div>
-                </div>
-
 
                 {{-- Aspek --}}
                 <div>
@@ -68,13 +66,14 @@
                     <div class="relative w-full">
                         <select
                             x-model="aspek"
+                            @change="filter()"
                             class="w-full appearance-none rounded-lg border border-slate-200 bg-white 
                                     px-3 py-2 pr-8 text-[11px] text-slate-600 outline-none transition 
                                     focus:border-sky-500 focus:ring-2 focus:ring-sky-100">
 
-                            <option>Semua Aspek</option>
-                            <option>Pengungkit</option>
-                            <option>Hasil</option>
+                            <option value="">Semua Aspek</option>
+                            <option value="Pengungkit">Pengungkit</option>
+                            <option value="Hasil">Hasil</option>
 
                         </select>
 
@@ -97,13 +96,47 @@
                     <div class="relative w-full">
                         <select
                             x-model="area"
+                            @change="filter()"
                             class="w-full appearance-none rounded-lg border border-slate-200 bg-white 
                                     px-3 py-2 pr-8 text-[11px] text-slate-600 outline-none transition 
                                     focus:border-sky-500 focus:ring-2 focus:ring-sky-100">
 
-                                    <option>Semua Area</option>
-                            <option>Pemenuhan</option>
-                            <option>Reform</option>
+                                    <option value="">Semua Area</option>
+                                    <option value="Pemenuhan">Pemenuhan</option>
+                                    <option value="Reform">Reform</option>
+
+                        </select>
+
+                        <i
+                            data-lucide="chevron-down"
+                            class="pointer-events-none absolute right-3 top-1/2
+                                h-3.5 w-3.5 -translate-y-1/2
+                                text-slate-400">
+                        </i>
+                    </div>
+                </div>
+
+                {{-- Pilar --}}
+                <div>
+                    <label class="mb-1 block text-[10px] font-medium text-slate-500">
+                        Pilar
+                    </label>
+
+                    <div class="relative w-full">
+                        <select
+                            x-model="pilar"
+                            @change="filter()"
+                            class="w-full appearance-none rounded-lg border border-slate-200 bg-white 
+                                    px-3 py-2 pr-8 text-[11px] text-slate-600 outline-none transition 
+                                    focus:border-sky-500 focus:ring-2 focus:ring-sky-100">
+
+                            <option value="">Semua Pilar</option>
+                            <option value="Pilar 1">Pilar 1</option>
+                            <option value="Pilar 2">Pilar 2</option>
+                            <option value="Pilar 3">Pilar 3</option>
+                            <option value="Pilar 4">Pilar 4</option>
+                            <option value="Pilar 5">Pilar 5</option>
+                            <option value="Pilar 6">Pilar 6</option>
 
                         </select>
 
@@ -138,7 +171,7 @@
                     <div class="mt-1 flex items-end gap-2">
 
                         <span class="text-3xl font-bold">
-                            73.03
+                            {{ number_format($nilaiTotal, 2) }}
                         </span>
 
                         <span class="mb-1 text-xs text-white/50">
@@ -151,15 +184,6 @@
 
                     <div class="space-y-3">
 
-                        <div class="flex items-center justify-between">
-                            <span class="text-[10px] text-white/60">
-                                Persentase
-                            </span>
-
-                            <span class="text-[10px] font-semibold">
-                                87.63%
-                            </span>
-                        </div>
 
                         <div class="flex items-center justify-between">
                             <span class="text-[10px] text-white/60">
@@ -167,7 +191,7 @@
                             </span>
 
                             <span class="text-[10px] font-semibold">
-                                52.47
+                                {{ number_format($nilaiPengungkit, 2) }}
                                 <span class="text-[10px] text-white/50">
                                     / 60
                                 </span>
@@ -180,7 +204,7 @@
                             </span>
 
                             <span class="text-[10px] font-semibold">
-                                2.32
+                                {{ number_format($nilaiHasil, 2) }}
                                 <span class="text-[10px] text-white/50">
                                     / 40
                                 </span>
@@ -199,7 +223,7 @@
                             </span>
 
                             <span class="text-[10px] font-semibold">
-                                42
+                                {{ $totalSubPilar }}
                             </span>
                         </div>
 
@@ -209,7 +233,7 @@
                             </span>
 
                             <span class="text-[10px] font-semibold">
-                                172
+                                {{ $totalPertanyaan }}
                             </span>
                         </div>
 
@@ -231,7 +255,7 @@
 
                                 <div>
                                     <p class="text-3xl font-bold text-sky-950">
-                                        43
+                                        {{ $buktiDukungTerisi }}
                                     </p>
 
                                     <p class="mt-1 text-xs text-slate-500">
@@ -247,11 +271,11 @@
 
                             <div class="mt-5 flex items-center gap-3">
                                 <div class="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
-                                    <div class="h-full rounded-full bg-sky-600" style="width: 37.55%"></div>
+                                    <div class="h-full rounded-full bg-sky-600" style="width: {{ $persentaseBuktiTerisi }}%"></div>
                                 </div>
 
                                 <span class="shrink-0 text-[10px] font-semibold text-slate-400">
-                                    37.55%
+                                    {{ number_format($persentaseBuktiTerisi, 2) }}%
                                 </span>
                             </div>
                         </div>
@@ -263,7 +287,7 @@
 
                                 <div>
                                     <p class="text-3xl font-bold text-sky-950">
-                                        31
+                                        {{ $buktiDukungBelumTerisi }}
                                     </p>
 
                                     <p class="mt-1 text-xs text-slate-500">
@@ -279,11 +303,11 @@
 
                             <div class="mt-5 flex items-center gap-3">
                                 <div class="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
-                                    <div class="h-full rounded-full bg-red-400" style="width: 12%"></div>
+                                    <div class="h-full rounded-full bg-red-400" style="width: {{ $persentaseBuktiBelumTerisi }}%"></div>
                                 </div>
 
                                 <span class="shrink-0 text-[10px] font-semibold text-slate-400">
-                                    12%
+                                    {{ number_format($persentaseBuktiBelumTerisi, 2) }}%
                                 </span>
                             </div>
                         </div>
@@ -295,7 +319,7 @@
 
                                 <div>
                                     <p class="text-3xl font-bold text-sky-950">
-                                        8
+                                        {{ $pertanyaanPemeriksaan }}
                                     </p>
 
                                     <p class="mt-1 text-xs text-slate-500">
@@ -311,11 +335,19 @@
 
                             <div class="mt-5 flex items-center gap-3">
                                 <div class="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
-                                    <div class="h-full rounded-full bg-violet-500" style="width: 4.7%"></div>
+                                    <div class="h-full rounded-full bg-violet-500" 
+                                                style="width: {{ $totalPertanyaan > 0
+                                                            ? number_format(($pertanyaanPemeriksaan / $totalPertanyaan) * 100, 2)
+                                                            : '0.00'
+                                                        }}%">
+                                    </div>
                                 </div>
 
                                 <span class="shrink-0 text-[10px] font-semibold text-slate-400">
-                                    4.7%
+                                    {{ $totalPertanyaan > 0
+                                        ? number_format(($pertanyaanPemeriksaan / $totalPertanyaan) * 100, 2)
+                                        : '0.00'
+                                    }}%
                                 </span>
                             </div>
                         </div>
@@ -326,7 +358,7 @@
 
                                 <div>
                                     <p class="text-3xl font-bold text-sky-950">
-                                        5
+                                        {{ $pertanyaanPerbaikan }}
                                     </p>
 
                                     <p class="mt-1 text-xs text-slate-500">
@@ -342,11 +374,19 @@
 
                             <div class="mt-5 flex items-center gap-3">
                                 <div class="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
-                                    <div class="h-full rounded-full bg-amber-400" style="width: 2%"></div>
+                                    <div class="h-full rounded-full bg-amber-400" 
+                                                style="width: {{ $totalPertanyaan > 0
+                                                            ? ($pertanyaanPerbaikan / $totalPertanyaan) * 100
+                                                            : 0
+                                                        }}%">
+                                    </div>
                                 </div>
 
                                 <span class="shrink-0 text-[10px] font-semibold text-slate-400">
-                                    2%
+                                    {{ $totalPertanyaan > 0
+                                        ? ($pertanyaanPerbaikan / $totalPertanyaan) * 100
+                                        : 0
+                                    }}%
                                 </span>
                             </div>
                         </div>
@@ -357,7 +397,7 @@
 
                                 <div>
                                     <p class="text-3xl font-bold text-sky-950">
-                                        10
+                                        {{ $pertanyaanSesuai }}
                                     </p>
 
                                     <p class="mt-1 text-xs text-slate-500">
@@ -373,11 +413,19 @@
 
                             <div class="mt-5 flex items-center gap-3">
                                 <div class="h-2 flex-1 overflow-hidden rounded-full bg-indigo-100">
-                                    <div class="h-full rounded-full bg-indigo-400" style="width: 5.8%"></div>
+                                    <div class="h-full rounded-full bg-indigo-400" 
+                                                style="width: {{ $totalPertanyaan > 0
+                                                        ? ($pertanyaanSesuai / $totalPertanyaan) * 100
+                                                        : 0
+                                                    }}%">
+                                    </div>
                                 </div>
 
                                 <span class="shrink-0 text-[10px] font-semibold text-slate-400">
-                                    5.8%
+                                    {{ $totalPertanyaan > 0
+                                        ? ($pertanyaanSesuai / $totalPertanyaan) * 100
+                                        : 0
+                                    }}%
                                 </span>
                             </div>
                         </div>
@@ -389,7 +437,7 @@
 
                                 <div>
                                     <p class="text-3xl font-bold text-sky-950">
-                                        15
+                                        {{ $pertanyaanDinilai }}
                                     </p>
 
                                     <p class="mt-1 text-xs text-slate-500">
@@ -405,11 +453,19 @@
 
                             <div class="mt-5 flex items-center gap-3">
                                 <div class="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
-                                    <div class="h-full rounded-full bg-emerald-500" style="width: 9.3%"></div>
+                                    <div class="h-full rounded-full bg-emerald-500" 
+                                                style="width: {{ $totalPertanyaan > 0
+                                                    ? ($pertanyaanDinilai / $totalPertanyaan) * 100
+                                                    : 0
+                                                }}%">
+                                    </div>
                                 </div>
 
                                 <span class="shrink-0 text-[10px] font-semibold text-slate-400">
-                                    9.3%
+                                    {{ $totalPertanyaan > 0
+                                        ? ($pertanyaanDinilai / $totalPertanyaan) * 100
+                                        : 0
+                                    }}%
                                 </span>
                             </div>
                         </div>
@@ -683,7 +739,10 @@
         ],
 
         datasets: [{
-            data: [74.76, 25.24],
+            data: [ 
+                {{ $persentaseBuktiTerisi }},
+                {{ $persentaseBuktiBelumTerisi }}
+            ],
 
             backgroundColor: [
                 '#10b981', // Terpenuhi
@@ -771,23 +830,9 @@
             .getElementById('pilarChart')
             .getContext('2d');
 
-        const pemenuhan = [
-            90.72,
-            84.00,
-            79.00,
-            73.00,
-            74.00,
-            80.00
-        ];
+        const pemenuhan = @json($pemenuhanPerPilar);
 
-        const kesesuaian = [
-            70.42,
-            72.15,
-            68.50,
-            65.30,
-            67.20,
-            71.40
-        ];
+        const kesesuaian = @json($kesesuaianPerPilar);
 
         const selisih = pemenuhan.map((nilai, index) => {
             return nilai - kesesuaian[index];
@@ -799,14 +844,7 @@
 
             data: {
 
-                labels: [
-                    'Pilar 1',
-                    'Pilar 2',
-                    'Pilar 3',
-                    'Pilar 4',
-                    'Pilar 5',
-                    'Pilar 6'
-                ],
+                labels: @json($pilars),
 
                 datasets: [
 
@@ -1009,27 +1047,13 @@
 
             data: {
 
-                labels: [
-                    'Pilar 1',
-                    'Pilar 2',
-                    'Pilar 3',
-                    'Pilar 4',
-                    'Pilar 5',
-                    'Pilar 6'
-                ],
+                labels: @json($pilars),
 
                 datasets: [{
 
                     label: '% Nilai',
 
-                    data: [
-                        82,
-                        83,
-                        79,
-                        73,
-                        73,
-                        80
-                    ],
+                    data: @json($nilaiPerPilar),
 
                     backgroundColor: '#0284c7',
 

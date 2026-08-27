@@ -56,7 +56,7 @@
         {{-- Monitoring Kegiatan --}}
         <a href="{{ route('kegiatan.index') }}"
            class="flex items-center rounded-lg px-4 py-2.5 text-xs font-bold tracking-wide transition
-           {{ request()->routeIs('monitoring-kegiatan')
+           {{ request()->routeIs('kegiatan.index', 'kegiatan.detail')
                 ? 'bg-sky-700 text-white'
                 : 'text-white/70 hover:bg-white/10 hover:text-white' }}">
 
@@ -69,7 +69,7 @@
         {{-- LKE --}}
         <a href="{{ route('lke') }}"
            class="flex items-center rounded-lg px-4 py-2.5 text-xs font-bold tracking-wide transition
-           {{ request()->routeIs('lke')
+           {{ request()->routeIs('lke', 'detail-lke')
                 ? 'bg-sky-700 text-white'
                 : 'text-white/70 hover:bg-white/10 hover:text-white' }}">
 
@@ -94,20 +94,29 @@
     </nav>
 
 
-    {{-- Bottom menu --}}
-    <div class="mt-auto border-t border-white/10 px-3 pt-4">
+    {{-- Logout --}}
+    <div class="mt-auto border-t border-white/10 px-3 pt-4 ">
 
-        {{-- Logout --}}
-        <a href="#"
-           class="flex items-center rounded-lg px-4 py-2.5 text-xs font-bold
-                  tracking-wide text-white/70 transition
-                  hover:bg-white/10 hover:text-white">
+        <form
+            method="POST"
+            action="{{ route('logout') }}"
+            id="logout-form"
+            class=""
+        >
+            @csrf
 
-            <i data-lucide="log-out" class="mr-2 h-4 w-4"></i>
+            <button
+                type="button"
+                onclick="confirmLogout()"
+                class="flex items-center w-full rounded-lg px-4 py-2.5 text-xs font-bold
+                    tracking-wide text-white/70 transition
+                    hover:bg-white/10 hover:text-white">
 
-            Logout
+                <i data-lucide="log-out" class="mr-2 h-4 w-4"></i>
 
-        </a>
+                Logout
+            </button>
+        </form>
 
     </div>
 
