@@ -10,6 +10,12 @@ class SubPilarLKE extends Model
 {
     protected $table = 'SubPilarLKE';
 
+    protected $primaryKey = 'id_subpilar';
+
+    public $incrementing = false;
+
+    protected $keyType = 'string';
+
     protected $fillable = [
         'status',
         'kelengkapan_pemenuhan',

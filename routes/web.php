@@ -7,6 +7,7 @@ use App\Http\Controllers\KegiatanController;
 use App\Http\Controllers\LKEController;
 use App\Http\Controllers\PelaksanaanKegiatanController;
 use App\Http\Controllers\PertanyaanLKEController;
+use App\Http\Controllers\UploadController;
 use Illuminate\Support\Facades\Route;
 
 // =====================================================
@@ -19,168 +20,220 @@ Route::get('/login', [AuthController::class, 'showLogin'])
 Route::post('/login', [AuthController::class, 'login'])
     ->name('login.process');
 
-Route::post('/logout', [AuthController::class, 'logout'])
-    ->name('logout');
+
+
 
 Route::middleware('auth')->group(function () {
 
-    Route::get('/dashboard', function () {
-        return view('dashboard');
-    })->name('dashboard');
+    // logout
+    Route::post('/logout', [AuthController::class, 'logout'])
+        ->name('logout');
 
-});
+    // =====================================================
+    // MONITORING KEGIATAN
+    // =====================================================
 
-// =====================================================
-// MONITORING KEGIATAN
-// =====================================================
-
-Route::get(
-    '/monitoring-kegiatan',
-    [KegiatanController::class, 'index']
-)->name('kegiatan.index');
+    Route::get(
+        '/monitoring-kegiatan',
+        [KegiatanController::class, 'index']
+    )->name('kegiatan.index');
 
 
-Route::get(
-    '/monitoring-kegiatan/data',
-    [KegiatanController::class, 'data']
-)->name('monitoring.kegiatan.data');
+    Route::get(
+        '/monitoring-kegiatan/data',
+        [KegiatanController::class, 'data']
+    )->name('monitoring.kegiatan.data');
 
 
-Route::patch(
-    '/kegiatan/{kegiatan}/status',
-    [KegiatanController::class, 'updateStatus']
-)->name('kegiatan.updateStatus');
+    Route::patch(
+        '/kegiatan/{kegiatan}/status',
+        [KegiatanController::class, 'updateStatus']
+    )->name('kegiatan.updateStatus');
 
 
-// =====================================================
-// DETAIL KEGIATAN / PELAKSANAAN
-// =====================================================
+    // =====================================================
+    // DETAIL KEGIATAN / PELAKSANAAN
+    // =====================================================
 
-Route::get(
-    '/kegiatan/{kegiatan}/pelaksanaan',
-    [PelaksanaanKegiatanController::class, 'index']
-)->name('pelaksanaan.index');
-
-
-Route::post(
-    '/kegiatan/{kegiatan}/generate-pelaksanaan',
-    [PelaksanaanKegiatanController::class, 'generatePelaksanaan']
-)->name('pelaksanaan.generate');
+    Route::get(
+        '/kegiatan/{kegiatan}/pelaksanaan',
+        [PelaksanaanKegiatanController::class, 'index']
+    )->name('pelaksanaan.index');
 
 
-// =====================================================
-// UPDATE WAKTU PELAKSANAAN
-// =====================================================
-
-Route::put(
-    '/pelaksanaan/{pelaksanaanKegiatan}/waktu',
-    [PelaksanaanKegiatanController::class, 'updateWaktuPelaksanaan']
-)->name('pelaksanaan.waktu.update');
+    Route::post(
+        '/kegiatan/{kegiatan}/generate-pelaksanaan',
+        [PelaksanaanKegiatanController::class, 'generatePelaksanaan']
+    )->name('pelaksanaan.generate');
 
 
-// =====================================================
-// UPDATE DOKUMENTASI
-// =====================================================
+    // =====================================================
+    // UPDATE WAKTU PELAKSANAAN
+    // =====================================================
 
-Route::put(
-    '/pelaksanaan/{pelaksanaanKegiatan}/dokumentasi',
-    [PelaksanaanKegiatanController::class, 'updateDokumentasi']
-)->name('pelaksanaan.dokumentasi.update');
+    Route::put(
+        '/pelaksanaan/{pelaksanaanKegiatan}/waktu',
+        [PelaksanaanKegiatanController::class, 'updateWaktuPelaksanaan']
+    )->middleware('role:admin,pilar')
+     ->name('pelaksanaan.updateWaktu');
 
-
-// =====================================================
-// DETAIL KEGIATAN
-// =====================================================
-
-Route::get(
-    '/kegiatan/{kegiatan}/detail',
-    [PelaksanaanKegiatanController::class, 'index']
-)->name('kegiatan.detail');
+    Route::post(
+        '/pelaksanaan/{pelaksanaanKegiatan}/dokumentasi',
+        [PelaksanaanKegiatanController::class, 'updateDokumentasi']
+    )->middleware('role:admin,pilar')
+     ->name('pelaksanaan.dokumentasi');
 
 
-// =====================================================
-// DETAIL KEGIATAN DARI KEGIATAN CONTROLLER
-// =====================================================
+    // =====================================================
+    // UPDATE DOKUMENTASI
+    // =====================================================
 
-Route::get(
-    '/kegiatan/{kegiatan}',
-    [KegiatanController::class, 'show']
-)->name('kegiatan.show');
-
-
-// =====================================================
-// DASHBOARD
-// =====================================================
-
-Route::get('/dashboard', [
-    DashboardController::class,
-    'index'
-])->name('dashboard');
+    Route::put(
+        '/pelaksanaan/{pelaksanaanKegiatan}/dokumentasi',
+        [PelaksanaanKegiatanController::class, 'updateDokumentasi']
+    )->middleware('role:admin,pilar')
+     ->name('pelaksanaan.dokumentasi.update');
 
 
-// =====================================================
-// JADWAL
-// =====================================================
+    // =====================================================
+    // DETAIL KEGIATAN
+    // =====================================================
 
-Route::get('/jadwal', function () {
-    return view('jadwal');
-})->name('jadwal');
-
-Route::get('/jadwal', [JadwalController::class, 'index'])
-    ->name('jadwal');
+    Route::get(
+        '/kegiatan/{kegiatan}/detail',
+        [PelaksanaanKegiatanController::class, 'index']
+    )->name('kegiatan.detail');
 
 
-// =====================================================
-// LKE
-// =====================================================
+    // =====================================================
+    // DETAIL KEGIATAN DARI KEGIATAN CONTROLLER
+    // =====================================================
 
-Route::get('/lke', [LKEController::class, 'index'])
-    ->name('lke');
+    Route::get(
+        '/kegiatan/{kegiatan}',
+        [KegiatanController::class, 'show']
+    )->name('kegiatan.show');
 
-Route::put('/lke/{id}', [PertanyaanLKEController::class, 'update'])
-    ->name('lke.update');
 
-Route::get('/lke/{id_pertanyaan}', [LKEController::class, 'detail'])
-    ->name('lke.detail');
+    // =====================================================
+    // DASHBOARD
+    // =====================================================
 
-Route::get('/detail-lke/{id_pertanyaan}', [LKEController::class, 'detail']
-    )->name('detail.lke');
+    Route::get('/dashboard', [
+        DashboardController::class,
+        'index'
+    ])->middleware('refresh.lke')
+    ->name('dashboard');
 
-Route::get('/lke/update-status',[PertanyaanLKEController::class, 'updateStatusPertanyaan']
+
+    // =====================================================
+    // JADWAL
+    // =====================================================
+
+    Route::get('/jadwal', [JadwalController::class, 'index'])
+        ->middleware('refresh.lke')
+        ->name('jadwal');
+
+
+    // =====================================================
+    // LKE
+    // =====================================================
+
+    Route::get('/lke', [LKEController::class, 'index'])
+        ->middleware('refresh.lke')
+        ->name('lke');
+
+    Route::put('/lke/{id}', [PertanyaanLKEController::class, 'update'])
+        ->name('lke.update');
+
+    Route::get('/lke/{id_pertanyaan}', [LKEController::class, 'detail'])
+        ->name('lke.detail');
+
+    Route::get('/detail-lke/{id_pertanyaan}', [LKEController::class, 'detail']
+        )->name('detail.lke');
+
+    // Route::get('/lke/{id_pertanyaan}', [
+    //     PertanyaanLKEController::class,
+    //     'detail'
+    // ])->name('lke.detail');
+
+    // Route::get('/detail-lke/{id_pertanyaan}', [
+    //     PertanyaanLKEController::class,
+    //     'detail'
+    // ])->name('detail.lke');
+
+    Route::get('/lke/update-status',[PertanyaanLKEController::class, 'updateStatusPertanyaan']
+        )->name('lke.update-status');
+
+    Route::post('/lke/update-status',
+        [PertanyaanLKEController::class, 'updateStatusPertanyaan']
     )->name('lke.update-status');
 
-Route::post('/lke/update-status',
-    [PertanyaanLKEController::class, 'updateStatusPertanyaan']
-)->name('lke.update-status');
+    Route::post(
+        '/lke/{id}/pemeriksaan',
+        [PertanyaanLKEController::class, 'simpanPemeriksaan']
+    )->middleware('role:admin,sekretaris')
+     ->name('lke.pemeriksaan.simpan');
 
-Route::post(
-    '/lke/{id}/pemeriksaan',
-    [PertanyaanLKEController::class, 'simpanPemeriksaan']
-)->name('lke.pemeriksaan.simpan');
-
-Route::post(
-    '/detail-lke/bukti-dukung/upload',
-    [PertanyaanLKEController::class, 'uploadBuktiDukung']
-)->name('bukti-dukung.upload');
+    Route::post(
+        '/detail-lke/bukti-dukung/upload',
+        [PertanyaanLKEController::class, 'uploadBuktiDukung']
+    )->middleware('role:admin,pilar')
+     ->name('bukti-dukung.upload');
 
 
-// =====================================================
-// DETAIL LKE
-// =====================================================
+    // =====================================================
+    // DETAIL LKE
+    // =====================================================
 
-Route::get('/lke/{periode}', [LKEController::class, 'detail'])
-    ->name('lke.detail');
+    Route::get('/lke/{periode}', [LKEController::class, 'detail'])
+        ->name('lke.detail');
 
-Route::post(
-    '/bukti-dukung/upload',
-    [pertanyaanLKEController::class, 'upload']
-)->name('bukti-dukung.upload');
+    Route::post(
+        '/bukti-dukung/upload',
+        [pertanyaanLKEController::class, 'upload']
+    )->middleware('role:admin,pilar')
+     ->name('bukti-dukung.upload');
 
+    // =====================================================
+    // UPLOAD
+    // =====================================================
 
-// =====================================================
-// PENGATURAN
-// =====================================================
+    // Upload bukti dukung
+    Route::post(
+        '/upload/bukti-dukung',
+        [UploadController::class, 'uploadBuktiDukung']
+    )->middleware('role:admin,pilar')
+     ->name('upload.bukti-dukung');
 
-Route::get('/pengaturan', function () {
-    return view('pengaturan');
-})->name('pengaturan');
+    // Upload dokumentasi kegiatan
+    Route::post(
+        '/upload/dokumentasi/{id}',
+        [UploadController::class, 'uploadDokumentasi']
+    )->middleware('role:admin,pilar')
+     ->name('upload.dokumentasi');
+
+    // Bukti dukung
+    Route::get(
+        '/download/bukti-dukung/{id}',
+        [UploadController::class, 'downloadBuktiDukung']
+    )->middleware('role:admin,pilar')
+     ->name('download.bukti-dukung');
+
+    // Dokumentasi kegiatan
+    Route::get(
+        '/download/dokumentasi/{id}',
+        [UploadController::class, 'downloadDokumentasi']
+    )->middleware('role:admin,pilar')
+     ->name('download.dokumentasi');
+
+    // =====================================================
+    // PENGATURAN
+    // =====================================================
+
+    Route::get('/pengaturan', function () {
+        return view('pengaturan');
+    })->middleware('role:admin')
+        ->name('pengaturan');
+
+});

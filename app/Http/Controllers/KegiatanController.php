@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Kegiatan;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class KegiatanController extends Controller
@@ -48,14 +49,11 @@ class KegiatanController extends Controller
         // =========================
 
         if ($request->filled('search')) {
-
             $search = $request->search;
 
             $query->where(function ($q) use ($search) {
-
                 $q->where('nama_kegiatan', 'like', "%{$search}%")
                 ->orWhere('kode_pertanyaan', 'like', "%{$search}%");
-
             });
         }
 
@@ -65,9 +63,7 @@ class KegiatanController extends Controller
         // =========================
 
         if ($request->filled('pilar')) {
-
             $query->where('pilar', $request->pilar);
-
         }
 
 
@@ -84,85 +80,86 @@ class KegiatanController extends Controller
             // TINDAK LANJUT
             // =========================
             // Kegiatan berulang
-            // dan minimal satu pelaksanaan
-            // terlambat.
+            // dan minimal satu pelaksanaan terlambat.
+            //
+            // PRIORITAS TERTINGGI
+            // =========================
 
             if ($status === 'tindak_lanjut') {
 
-                $query->where('jumlah_pelaksanaan', '>', 1)
+                $query
+                    ->where('jumlah_pelaksanaan', '>', 1)
                     ->whereHas('pelaksanaan', function ($q) {
-
-                        $q->where(
-                            'status_pelaksanaan',
-                            'terlambat'
-                        );
-
+                        $q->where('status_pelaksanaan', 'terlambat');
                     });
 
             }
 
+
             // =========================
             // BERLANGSUNG
             // =========================
-            // Ada pelaksanaan berlangsung
-            // DAN tidak ada pelaksanaan terlambat.
+            // Ada minimal satu pelaksanaan
+            // berlangsung.
             //
-            // Tindak lanjut punya prioritas
-            // lebih tinggi.
+            // Tetapi TIDAK boleh ada yang terlambat,
+            // karena jika ada terlambat maka
+            // statusnya Tindak Lanjut.
+            // =========================
 
             elseif ($status === 'berlangsung') {
 
-                $query->whereHas('pelaksanaan', function ($q) {
+                $query
+                    ->whereHas('pelaksanaan', function ($q) {
+                        $q->where(
+                            'status_pelaksanaan',
+                            'berlangsung'
+                        );
+                    })
+                    ->whereDoesntHave('pelaksanaan', function ($q) {
+                        $q->where(
+                            'status_pelaksanaan',
+                            'terlambat'
+                        );
+                    });
 
-                    $q->where(
-                        'status_pelaksanaan',
-                        'berlangsung'
-                    );
-
-                })
-                ->whereDoesntHave('pelaksanaan', function ($q) {
-
-                    $q->where(
-                        'status_pelaksanaan',
-                        'terlambat'
-                    );
-
-                });
             }
 
 
             // =========================
             // TERLAMBAT
             // =========================
-            // Kegiatan satu kali
-            // dan pelaksanaannya terlambat.
+            // HANYA untuk kegiatan satu kali.
+            //
+            // Kalau berulang + ada terlambat
+            // → Tindak Lanjut.
+            // =========================
 
             elseif ($status === 'terlambat') {
 
-                $query->where('jumlah_pelaksanaan', '<=', 1)
+                $query
+                    ->where('jumlah_pelaksanaan', '<=', 1)
                     ->whereHas('pelaksanaan', function ($q) {
-
                         $q->where(
                             'status_pelaksanaan',
                             'terlambat'
                         );
-
                     });
 
             }
 
 
-
             // =========================
             // SELESAI
             // =========================
-            // Semua pelaksanaan sudah selesai.
+            // Semua pelaksanaan selesai.
+            // =========================
 
             elseif ($status === 'selesai') {
 
-                $query->whereHas('pelaksanaan')
+                $query
+                    ->whereHas('pelaksanaan')
                     ->whereDoesntHave('pelaksanaan', function ($q) {
-
                         $q->where(function ($q) {
 
                             $q->whereNull('status_pelaksanaan')
@@ -173,7 +170,6 @@ class KegiatanController extends Controller
                             );
 
                         });
-
                     });
 
             }
@@ -183,23 +179,30 @@ class KegiatanController extends Controller
             // MENUNGGU
             // =========================
             // Semua pelaksanaan masih menunggu.
+            // =========================
 
             elseif ($status === 'menunggu') {
 
-                $query->whereHas('pelaksanaan')
+                $query
+                    ->whereHas('pelaksanaan')
                     ->whereDoesntHave('pelaksanaan', function ($q) {
 
-                        $q->whereIn('status_pelaksanaan', [
-                            'status_pelaksanaan',
-                            '!=',
-                            'menunggu',
-                        ]);
+                        $q->where(function ($q) {
+
+                            $q->whereNull('status_pelaksanaan')
+                            ->orWhere(
+                                'status_pelaksanaan',
+                                '!=',
+                                'menunggu'
+                            );
+
+                        });
 
                     });
 
             }
         }
-        
+
 
         // =========================
         // FILTER BULAN
@@ -212,7 +215,7 @@ class KegiatanController extends Controller
             $query->whereHas('pelaksanaan', function ($q) use ($bulan) {
 
                 $q->whereMonth(
-                    'waktu_pemenuhan',
+                    'waktu_pelaksanaan',
                     $bulan
                 );
 
@@ -239,6 +242,74 @@ class KegiatanController extends Controller
             ->orderBy('waktu_pemenuhan', 'asc')
             ->paginate($perPage)
             ->withQueryString();
+    }
+
+    private function getPelaksanaanAktif($kegiatan)
+    {
+        $bulanSekarang = Carbon::today()->startOfMonth();
+
+        // ==========================================
+        // KEGIATAN TIDAK BERULANG
+        // ==========================================
+
+        if ($kegiatan->jumlah_pelaksanaan <= 1) {
+            return $kegiatan->pelaksanaan->first();
+        }
+
+
+        // ==========================================
+        // KEGIATAN BERULANG
+        // ==========================================
+
+        // 1. Cari periode bulan sekarang
+        $pelaksanaanSekarang = $kegiatan->pelaksanaan
+            ->filter(function ($item) use ($bulanSekarang) {
+
+                if (!$item->waktu_pelaksanaan) {
+                    return false;
+                }
+
+                return Carbon::parse($item->waktu_pelaksanaan)
+                    ->startOfMonth()
+                    ->equalTo($bulanSekarang);
+            })
+            ->sortBy('waktu_pelaksanaan')
+            ->first();
+
+        if ($pelaksanaanSekarang) {
+            return $pelaksanaanSekarang;
+        }
+
+
+        // 2. Kalau tidak ada bulan sekarang,
+        // ambil periode terdekat setelah bulan sekarang
+
+        $berikutnya = $kegiatan->pelaksanaan
+            ->filter(function ($item) use ($bulanSekarang) {
+
+                if (!$item->waktu_pelaksanaan) {
+                    return false;
+                }
+
+                return Carbon::parse($item->waktu_pelaksanaan)
+                    ->startOfMonth()
+                    ->greaterThan($bulanSekarang);
+            })
+            ->sortBy('waktu_pelaksanaan')
+            ->first();
+
+        if ($berikutnya) {
+            return $berikutnya;
+        }
+
+
+        // 3. Kalau semua sudah lewat,
+        // ambil periode terakhir
+
+        return $kegiatan->pelaksanaan
+            ->filter(fn ($item) => $item->waktu_pelaksanaan)
+            ->sortByDesc('waktu_pelaksanaan')
+            ->first();
     }
 
 

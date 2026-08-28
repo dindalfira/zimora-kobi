@@ -6,6 +6,7 @@ use App\Models\BuktiDukungLKE;
 use App\Models\PertanyaanLKE;
 use App\Models\RiwayatPenilaianLKE;
 use App\Models\SubPilarLKE;
+use App\Models\PelaksanaanKegiatan;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
@@ -127,7 +128,7 @@ class DashboardController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $subpilar = SubPilarLKE::get();
+        $subpilar = SubPilarLKE::where('aspek', 'A')->get();
 
         $pertanyaanLKE = PertanyaanLKE::get();
 
@@ -149,6 +150,10 @@ class DashboardController extends Controller
             ->filter()
             ->unique()
             ->sort()
+            ->values();
+
+        $namapilars = $pilars
+            ->map(fn ($pilars) => 'Pilar ' . $pilars)
             ->values();
 
 
@@ -285,6 +290,31 @@ class DashboardController extends Controller
             $bobotPerPilar[] = round($bobotMaksimal, 2);
         }
 
+        // status kegiatan
+        $pelaksanaan = PelaksanaanKegiatan::all();
+
+        $statusKegiatan = [
+            'menunggu' => 0,
+            'berlangsung' => 0,
+            'selesai' => 0,
+            'terlambat' => 0,
+        ];
+
+        foreach ($pelaksanaan as $item) {
+            $status = strtolower($item->status_aktual);
+
+            if (isset($statusKegiatan[$status])) {
+                $statusKegiatan[$status]++;
+            }
+        }
+
+        $statusKegChart = [
+        $statusKegiatan['menunggu'],
+        $statusKegiatan['berlangsung'],
+        $statusKegiatan['selesai'],
+        $statusKegiatan['terlambat'],
+    ];
+
         /*
         |--------------------------------------------------------------------------
         | RETURN DASHBOARD
@@ -318,10 +348,14 @@ class DashboardController extends Controller
 
             // BAR CHART
             'pilars',
+            'namapilars',
             'pemenuhanPerPilar',
             'kesesuaianPerPilar',
             'nilaiPerPilar',
             'bobotPerPilar',
+
+            'statusKegiatan',
+            'statusKegChart'
         ));
     }
 }

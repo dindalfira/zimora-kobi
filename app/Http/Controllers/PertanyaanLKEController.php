@@ -44,9 +44,70 @@ class PertanyaanLKEController extends Controller
             'pemeriksaanTerakhir',
         ])->firstOrFail($id_pertanyaan);
 
+        $role = strtolower(Auth::user()->role ?? '');
 
+            $isAdminSekretaris = in_array(
+                $role,
+                ['admin', 'sekretaris']
+            );
 
-        return view('detail-lke', compact('pertanyaan'));
+            $semuaBuktiLengkap =
+                $this->buktiDukungLengkap($pertanyaan);
+
+            $pemeriksaanTerakhir =
+                $pertanyaan->pemeriksaanTerakhir;
+
+            /*
+            |--------------------------------------------------------------------------
+            | TENTUKAN TAHAP
+            |--------------------------------------------------------------------------
+            */
+
+            if (!$isAdminSekretaris) {
+
+                $tahap = 'dasar';
+
+            } elseif (!$semuaBuktiLengkap) {
+
+                $tahap = 'dasar';
+
+            } elseif (!$pemeriksaanTerakhir) {
+
+                $tahap = 'pemeriksaan';
+
+            } elseif (
+                $pemeriksaanTerakhir->status_pemeriksaan === 'sesuai'
+                && is_null($pemeriksaanTerakhir->jawaban)
+            ) {
+
+                $tahap = 'penilaian';
+
+            } elseif (
+                $pemeriksaanTerakhir->status_pemeriksaan === 'sesuai'
+                && !is_null($pemeriksaanTerakhir->jawaban)
+            ) {
+
+                $tahap = 'selesai';
+
+            } else {
+
+                /*
+                |--------------------------------------------------------------------------
+                | STATUS PERBAIKAN
+                |--------------------------------------------------------------------------
+                */
+
+                $tahap = 'pemeriksaan';
+            }
+
+            return view(
+                'detail-lke',
+                compact(
+                    'pertanyaan',
+                    'tahap',
+                    'semuaBuktiLengkap'
+                )
+            );
     }
 
     private function konversiNilai(
@@ -180,73 +241,257 @@ class PertanyaanLKEController extends Controller
 
     public function simpanPemeriksaan(Request $request, $id)
     {
-        $pertanyaan = PertanyaanLKE::where(
+        $pertanyaan = PertanyaanLKE::with([
+            'buktiDukung',
+            'pemeriksaanTerakhir',
+        ])->where(
             'id_pertanyaan',
             $id
         )->firstOrFail();
 
-        $validated = $request->validate([
-            'catatan_pemeriksaan' => ['nullable', 'string'],
-            'status_pemeriksaan' => ['required', 'in:sesuai,perbaikan'],
-            'jawaban' => ['required', 'string'],
-            'narasi' => ['required', 'string'],
-        ]);
-
-        $jawaban = $validated['jawaban'];
-
         /*
         |--------------------------------------------------------------------------
-        | Nilai hasil konversi jawaban
+        | CEK ROLE
         |--------------------------------------------------------------------------
         */
 
-        $nilai = $this->konversiNilai(
-            $jawaban,
-            $pertanyaan->kriteria_jawaban
-        );
+        $role = strtolower(Auth::user()->role ?? '');
+
+        if (!in_array($role, ['admin', 'sekretaris'])) {
+            abort(403, 'Anda tidak memiliki akses untuk melakukan pemeriksaan.');
+        }
 
         /*
         |--------------------------------------------------------------------------
-        | Bobot penuh pertanyaan
+        | CEK BUKTI DUKUNG
         |--------------------------------------------------------------------------
         */
 
-        $bobotPenuh = (float) $pertanyaan->bobot;
+        $semuaBuktiLengkap = $this->buktiDukungLengkap($pertanyaan);
 
         /*
         |--------------------------------------------------------------------------
-        | Bobot hasil
+        | TENTUKAN TAHAP
         |--------------------------------------------------------------------------
         */
 
-        $bobot = $nilai * $bobotPenuh;
+        $tahap = $request->input('tahap');
 
-        PemeriksaanLKE::create([
-            'pertanyaan_lke_id' => $pertanyaan->id,
+        /*
+        |--------------------------------------------------------------------------
+        | TAHAP 1
+        | PEMERIKSAAN
+        |--------------------------------------------------------------------------
+        */
 
-            'jawaban' => $jawaban,
+        if ($tahap === 'pemeriksaan') {
 
-            'nilai' => $nilai,
+            if (!$semuaBuktiLengkap) {
+                throw ValidationException::withMessages([
+                    'status_pemeriksaan' =>
+                        'Bukti dukung belum lengkap. Pemeriksaan belum dapat dilakukan.'
+                ]);
+            }
 
-            'bobot' => $bobot,
+            $validated = $request->validate([
+                'status_pemeriksaan' => [
+                    'required',
+                    'in:sesuai,perbaikan'
+                ],
 
-            'status_pemeriksaan' =>
-                $validated['status_pemeriksaan'],
+                'catatan_pemeriksaan' => [
+                    'nullable',
+                    'string'
+                ],
+            ]);
 
-            'catatan_pemeriksaan' =>
-                $validated['catatan_pemeriksaan'] ?? null,
+            /*
+            |--------------------------------------------------------------------------
+            | SIMPAN RIWAYAT PEMERIKSAAN
+            |--------------------------------------------------------------------------
+            |
+            | Setiap kali dilakukan pemeriksaan baru,
+            | dibuat record baru.
+            |
+            */
 
-            'narasi' =>
-                $validated['narasi'],
+            PemeriksaanLKE::create([
+                'pertanyaan_lke_id' => $pertanyaan->id,
 
-            'diperiksa_oleh' => Auth::id(),
+                'status_pemeriksaan' =>
+                    $validated['status_pemeriksaan'],
 
-            'diperiksa_pada' => now(),
-        ]);
+                'catatan_pemeriksaan' =>
+                    $validated['catatan_pemeriksaan'] ?? null,
 
-        return redirect()
-            ->route('lke.detail', $pertanyaan->id_pertanyaan)
-            ->with('success', 'Pemeriksaan berhasil disimpan.');
+                'jawaban' => null,
+
+                'nilai' => null,
+
+                'bobot' => null,
+
+                'narasi' => null,
+
+                'diperiksa_oleh' => Auth::id(),
+
+                'diperiksa_pada' => now(),
+            ]);
+
+            /*
+            |--------------------------------------------------------------------------
+            | UPDATE STATUS PERTANYAAN
+            |--------------------------------------------------------------------------
+            */
+
+            $pertanyaan->update([
+                'status_pertanyaan' =>
+                    $validated['status_pemeriksaan']
+            ]);
+
+            return redirect()
+                ->route('lke.detail', $pertanyaan->id_pertanyaan)
+                ->with(
+                    'success',
+                    'Pemeriksaan berhasil disimpan.'
+                );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | TAHAP 2
+        | PENILAIAN
+        |--------------------------------------------------------------------------
+        */
+
+        if ($tahap === 'penilaian') {
+
+            if (!$semuaBuktiLengkap) {
+                throw ValidationException::withMessages([
+                    'jawaban' =>
+                        'Bukti dukung belum lengkap.'
+                ]);
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | AMBIL PEMERIKSAAN TERAKHIR
+            |--------------------------------------------------------------------------
+            */
+
+            $pemeriksaan =
+                PemeriksaanLKE::where(
+                    'pertanyaan_lke_id',
+                    $pertanyaan->id
+                )
+                ->latest('diperiksa_pada')
+                ->first();
+
+            /*
+            |--------------------------------------------------------------------------
+            | WAJIB SUDAH SESUAI
+            |--------------------------------------------------------------------------
+            */
+
+            if (
+                !$pemeriksaan ||
+                $pemeriksaan->status_pemeriksaan !== 'sesuai'
+            ) {
+                throw ValidationException::withMessages([
+                    'jawaban' =>
+                        'Pertanyaan belum dinyatakan sesuai oleh pemeriksa.'
+                ]);
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | VALIDASI PENILAIAN
+            |--------------------------------------------------------------------------
+            */
+
+            $validated = $request->validate([
+                'jawaban' => [
+                    'required',
+                    'string'
+                ],
+
+                'narasi' => [
+                    'required',
+                    'string'
+                ],
+            ]);
+
+            /*
+            |--------------------------------------------------------------------------
+            | KONVERSI NILAI
+            |--------------------------------------------------------------------------
+            */
+
+            $jawaban = $validated['jawaban'];
+
+            $nilai = $this->konversiNilai(
+                $jawaban,
+                $pertanyaan->kriteria_jawaban
+            );
+
+            /*
+            |--------------------------------------------------------------------------
+            | HITUNG BOBOT
+            |--------------------------------------------------------------------------
+            */
+
+            $bobotPenuh = (float) $pertanyaan->bobot;
+
+            $bobot = $nilai * $bobotPenuh;
+
+            /*
+            |--------------------------------------------------------------------------
+            | UPDATE PEMERIKSAAN TERAKHIR
+            |--------------------------------------------------------------------------
+            |
+            | Tidak membuat pemeriksaan baru.
+            | Data penilaian masuk ke pemeriksaan yang sudah SESUAI.
+            |
+            */
+
+            $pemeriksaan->update([
+                'jawaban' => $jawaban,
+
+                'nilai' => $nilai,
+
+                'bobot' => $bobot,
+
+                'narasi' => $validated['narasi'],
+            ]);
+
+            /*
+            |--------------------------------------------------------------------------
+            | UPDATE NILAI PERTANYAAN
+            |--------------------------------------------------------------------------
+            */
+
+            $pertanyaan->update([
+                'nilai_mandiri' => $nilai,
+
+                'bobot_mandiri' => $bobot,
+
+                'status_pertanyaan' => 'dinilai',
+            ]);
+
+            return redirect()
+                ->route('lke.detail', $pertanyaan->id_pertanyaan)
+                ->with(
+                    'success',
+                    'Penilaian berhasil disimpan.'
+                );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | TAHAP TIDAK VALID
+        |--------------------------------------------------------------------------
+        */
+
+        abort(403, 'Tahap proses tidak valid.');
     }
 
     public function uploadBuktiDukung(Request $request)
@@ -289,7 +534,7 @@ class PertanyaanLKEController extends Controller
         $namaFile =
             $bukti->id_bukti_dukung .
             ' ' .
-            $bukti->nama_bukti_dukung .
+            $bukti->nama_bukti_dukung_singkat .
             '.pdf';
 
 
@@ -298,7 +543,7 @@ class PertanyaanLKEController extends Controller
         | HAPUS FILE LAMA JIKA REUPLOAD
         |--------------------------------------------------------------------------
         */
-// perbaiki ini nanti pas sambungin gdrive
+    // perbaiki ini nanti pas sambungin gdrive
         if (!empty($bukti->link)) {
 
             $fileLama =

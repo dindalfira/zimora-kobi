@@ -37,21 +37,96 @@
                     <span class="inline-flex items-center gap-1.5 rounded-full
                                 border border-slate-100 px-2.5 py-1
                                 text-[10px] font-medium text-slate-700 bg-slate-100">
-                        Pilar 1
+                        Pilar {{ $kegiatan->pilar ?? '-' }}
                     </span>
 
                     {{-- Status --}}
-                    <span class="inline-flex items-center gap-1.5 rounded-full
+
+                    @switch(strtolower($kegiatan->status_aktual))
+
+                        {{-- MENUNGGU --}}
+                        @case('menunggu')
+                            <span
+                                class="inline-flex items-center gap-1.5 rounded-full
                                 border border-slate-100 px-2.5 py-1
-                                text-[10px] font-medium text-slate-700 bg-slate-50">
-                        <i data-lucide="clock" class="h-3.5 w-3.5"></i>
-                        Menunggu
-                    </span>
+                                text-[10px] font-medium text-slate-700 bg-slate-50"
+                            >
+                                <i data-lucide="clock" class="h-3.5 w-3.5"></i>
+                                Menunggu
+                            </span>
+                            @break
+
+
+                        {{-- BERLANGSUNG --}}
+                        @case('berlangsung')
+                            <span
+                                class="inline-flex items-center gap-1.5 rounded-full
+                                border border-blue-100 px-2.5 py-1
+                                text-[10px] font-medium text-sky-700 bg-blue-50"
+                            >
+                                <i data-lucide="loader" class="h-3.5 w-3.5"></i>
+                                Berlangsung
+                            </span>
+                            @break
+
+
+                        {{-- SELESAI --}}
+                        @case('selesai')
+                            <span
+                                class="inline-flex items-center gap-1.5 rounded-full
+                                border border-emerald-100 px-2.5 py-1
+                                text-[10px] font-medium text-emerald-700 bg-emerald-50"
+                            >
+                                <i data-lucide="circle-check" class="h-3.5 w-3.5"></i>
+                                Selesai
+                            </span>
+                            @break
+
+
+                        {{-- TERLAMBAT --}}
+                        @case('terlambat')
+                            <span
+                                class="inline-flex items-center gap-1.5 rounded-full
+                                border border-red-100 px-2.5 py-1
+                                text-[10px] font-medium text-red-700 bg-red-50"
+                            >
+                                <i data-lucide="octagon-x" class="h-3.5 w-3.5"></i>
+                                Terlambat
+                            </span>
+                            @break
+
+
+                        {{-- TINDAK LANJUT --}}
+                        @case('tindak_lanjut')
+                            <span
+                                class="inline-flex items-center gap-1.5 rounded-full
+                                border border-amber-100 px-2.5 py-1
+                                text-[10px] font-medium text-amber-700 bg-amber-50"
+                            >
+                                <i data-lucide="triangle-alert" class="h-3.5 w-3.5"></i>
+                                Tindak Lanjut
+                            </span>
+                            @break
+
+
+                        {{-- DEFAULT --}}
+                        @default
+                            <span
+                                class="inline-flex items-center gap-1.5 rounded-full
+                                border border-slate-100 px-2.5 py-1
+                                text-[10px] font-medium text-slate-700 bg-slate-50"
+                            >
+                                <i data-lucide="clock" class="h-3.5 w-3.5"></i>
+                                Menunggu
+                            </span>
+
+                    @endswitch
+
                 </div>
 
 
                 <h1 class="mt-2 text-md font-bold leading-5 text-sky-950 sm:text-base">
-                    Rapat Monitoring dan Evaluasi Pembangunan Zona Integritas
+                    {{ $kegiatan->nama_kegiatan ?? '-' }}
                 </h1>
 
             </div>
@@ -111,16 +186,17 @@
                             </p>
 
                             <h3 class="mt-1 text-base font-bold text-sky-950">
-                                Rapat Monitoring dan Evaluasi Pembangunan Zona Integritas
+                                {{ $kegiatan->nama_kegiatan ?? '-' }}
                             </h3>
 
-                            <p class="mt-1 text-xs leading-5 text-slate-500">
+                            {{-- <p class="mt-1 text-xs leading-5 text-slate-500">
                                 Terdapat monitoring dan evaluasi terhadap pembangunan Zona Integritas
-                            </p>
+                            </p> --}}
                         </div>
 
                         {{-- Detail --}}
                         <div class="grid gap-1">
+                            {{-- @foreach($pelaksanaan as $item) --}}
 
                             <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
 
@@ -134,18 +210,79 @@
                                         <p class="text-[10px] font-bold uppercase tracking-wide text-slate-400">
                                             Tanggal Pelaksanaan
                                         </p>
-
                                     </div>
 
-                              
+                                    @php
+                                        $bulanSekarang = \Carbon\Carbon::today()->startOfMonth();
+
+                                        // Default
+                                        $pelaksanaanAktif = null;
+
+                                        if ($kegiatan->jumlah_pelaksanaan > 1) {
+
+                                            // 1. Prioritas: pelaksanaan pada bulan sekarang
+                                            $pelaksanaanAktif = $kegiatan->pelaksanaan
+                                                ->filter(function ($pelaksanaanItem) use ($bulanSekarang) {
+                                                    if (!$pelaksanaanItem->waktu_pelaksanaan) {
+                                                        return false;
+                                                    }
+
+                                                    return \Carbon\Carbon::parse(
+                                                        $pelaksanaanItem->waktu_pelaksanaan
+                                                    )->startOfMonth()->equalTo($bulanSekarang);
+                                                })
+                                                ->sortBy('waktu_pelaksanaan')
+                                                ->first();
+
+
+                                            // 2. Kalau tidak ada bulan sekarang,
+                                            // ambil bulan terdekat yang akan datang
+                                            if (!$pelaksanaanAktif) {
+                                                $pelaksanaanAktif = $kegiatan->pelaksanaan
+                                                    ->filter(function ($pelaksanaanItem) use ($bulanSekarang) {
+                                                        if (!$pelaksanaanItem->waktu_pelaksanaan) {
+                                                            return false;
+                                                        }
+
+                                                        return \Carbon\Carbon::parse(
+                                                            $pelaksanaanItem->waktu_pelaksanaan
+                                                        )->startOfMonth()->greaterThan($bulanSekarang);
+                                                    })
+                                                    ->sortBy('waktu_pelaksanaan')
+                                                    ->first();
+                                            }
+
+
+                                            // 3. Kalau semua sudah lewat,
+                                            // ambil periode terakhir
+                                            if (!$pelaksanaanAktif) {
+                                                $pelaksanaanAktif = $kegiatan->pelaksanaan
+                                                    ->filter(fn ($pelaksanaanItem) =>
+                                                        $pelaksanaanItem->waktu_pelaksanaan
+                                                    )
+                                                    ->sortByDesc('waktu_pelaksanaan')
+                                                    ->first();
+                                            }
+
+                                        } else {
+
+                                            // Kegiatan tidak berulang
+                                            $pelaksanaanAktif = $kegiatan->pelaksanaan->first();
+                                        }
+                                    @endphp
 
                                     {{-- Edit jadwal --}}
                                     <button
                                         type="button"
-                                        {{-- onclick="openEditJadwal(
-                                            {{ $item->id }},
-                                            '{{ $item->waktu_pelaksanaan?->format('Y-m-d') }}'
-                                        )" --}}
+                                        onclick="openEditJadwal(
+                                             {{ $pelaksanaanAktif?->id ?? 'null' }},
+                                            @js($pelaksanaanAktif?->waktu_pelaksanaan
+                                                        ? \Carbon\Carbon::parse(
+                                                            $pelaksanaan->first()->waktu_pelaksanaan
+                                                        )->format('Y-m-d')
+                                                        : null
+                                                )
+                                            )"
                                         class="inline-flex items-center gap-1
                                             rounded-md border border-sky-200
                                             bg-white px-2 py-1
@@ -203,7 +340,7 @@
                                                     type="button"
                                                     onclick="closeEditJadwal()"
                                                     class="rounded-lg p-1.5 text-slate-400
-                                                        transition hover:bg-slate-100
+                                                        transition hover:bg-red-100
                                                         hover:text-slate-600">
 
                                                     <i data-lucide="x" class="h-4 w-4"></i>
@@ -307,15 +444,83 @@
                                             </div>
 
                                         </div>
-
+                    
                                     </div>
 
                                  </div>
-                                <p class="mt-2 text-sm font-semibold text-slate-700">
-                                    15 September 2026
+
+                                @php
+                                    $bulanSekarang = \Carbon\Carbon::today()->startOfMonth();
+
+                                    if ($kegiatan->jumlah_pelaksanaan > 1) {
+
+                                        // Prioritas 1:
+                                        // cari pelaksanaan di bulan sekarang
+                                        $tanggalPelaksanaan = $pelaksanaan
+                                            ->filter(function ($p) use ($bulanSekarang) {
+                                                if (!$p->waktu_pelaksanaan) {
+                                                    return false;
+                                                }
+
+                                                $tanggal = \Carbon\Carbon::parse(
+                                                    $p->waktu_pelaksanaan
+                                                )->startOfMonth();
+
+                                                return $tanggal->equalTo($bulanSekarang);
+                                            })
+                                            ->sortBy('waktu_pelaksanaan')
+                                            ->first();
+
+                                        // Prioritas 2:
+                                        // jika tidak ada bulan sekarang,
+                                        // cari bulan terdekat setelah bulan sekarang
+                                        if (!$tanggalPelaksanaan) {
+                                            $tanggalPelaksanaan = $pelaksanaan
+                                                ->filter(function ($p) use ($bulanSekarang) {
+                                                    if (!$p->waktu_pelaksanaan) {
+                                                        return false;
+                                                    }
+
+                                                    $tanggal = \Carbon\Carbon::parse(
+                                                        $p->waktu_pelaksanaan
+                                                    )->startOfMonth();
+
+                                                    return $tanggal->greaterThan($bulanSekarang);
+                                                })
+                                                ->sortBy('waktu_pelaksanaan')
+                                                ->first();
+                                        }
+
+                                        // Prioritas 3:
+                                        // jika semua sudah lewat,
+                                        // ambil periode terakhir
+                                        if (!$tanggalPelaksanaan) {
+                                            $tanggalPelaksanaan = $pelaksanaan
+                                                ->filter(fn ($p) => $p->waktu_pelaksanaan)
+                                                ->sortByDesc('waktu_pelaksanaan')
+                                                ->first();
+                                        }
+
+                                    } else {
+
+                                        // Kegiatan tidak berulang
+                                        $tanggalPelaksanaan = $pelaksanaan->first();
+                                    }
+                                @endphp
+                                <p
+                                    id="displayWaktuPelaksanaan-{{ $kegiatan->kegiatan_id }}"
+                                    class="mt-2 text-sm font-semibold text-slate-700"
+                                >
+                                    {{ $tanggalPelaksanaan?->waktu_pelaksanaan
+                                            ? \Carbon\Carbon::parse($tanggalPelaksanaan?->waktu_pelaksanaan)
+                                                ->locale('id')
+                                                ->isoFormat('dddd, D MMMM YYYY')
+                                            : '-' }}
                                 </p>
 
                             </div>
+
+                            {{-- @ endforeach --}}
 
 
                             <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
@@ -333,7 +538,7 @@
                                 </div>
 
                                 <p class="mt-2 text-sm font-semibold text-slate-700">
-                                    Triwulanan
+                                    {{ $kegiatan->frekuensi_pelaksanaan }}
                                 </p>
 
                             </div>
@@ -382,10 +587,10 @@
                                     border border-slate-200 bg-slate-50 px-4 py-3">
                             <div class="min-w-0 flex-1">
                                 <p class="text-xs text-slate-600">
-                                    Undangan, daftar hadir, dan notulen pelaksanaan rapat evaluasi.
+                                    {{ $kegiatan->pedoman_bukti }}
                                 </p>
 
-                                <div class="mt-2 flex flex-wrap gap-2">
+                                {{-- <div class="mt-2 flex flex-wrap gap-2">
 
                                     <span class="rounded-full bg-white px-2 py-1
                                                 text-[9px] font-medium text-slate-500">
@@ -402,7 +607,7 @@
                                         1 file
                                     </span>
 
-                                </div>
+                                </div> --}}
                             </div>
                         </div>
 
@@ -450,11 +655,11 @@
                                     <div>
 
                                         <p class="text-[10px] font-bold uppercase tracking-wide text-sky-600">
-                                            Pilar I
+                                            Pilar {{ $kegiatan->pilar }}
                                         </p>
 
                                         <p class="mt-1 text-sm font-bold text-sky-950">
-                                            Manajemen Perubahan
+                                            {{ $kegiatan->pertanyaan->subpilar->nama_pilar }}
                                         </p>
 
                                     </div>
@@ -467,7 +672,7 @@
                                         </p>
 
                                         <p class="mt-1 text-xs font-semibold text-slate-700">
-                                            A.I.1.iii.b
+                                            {{ $kegiatan->kode_pertanyaan }}
                                         </p>
 
                                     </div>
@@ -480,7 +685,7 @@
                                         </p>
 
                                         <p class="mt-1 text-xs leading-5 text-slate-600">
-                                            Terdapat monitoring dan evaluasi terhadap pembangunan Zona Integritas
+                                            {{ $kegiatan->pertanyaan->nama_pertanyaan }}
                                         </p>
 
                                     </div>
@@ -488,7 +693,8 @@
                                 </div>
 
 
-                                <a href="{{ route('detail-lke') }}"
+                                {{-- <a href="#" --}}
+                                <a href="{{ route('lke.detail', $kegiatan->kode_pertanyaan) }}"
                                 class="shrink-0 inline-flex items-center gap-1.5
                                         rounded-lg border border-sky-200
                                         bg-white px-3 py-2
@@ -518,13 +724,608 @@
             {{-- =================================================
                 KOLOM KANAN - BUKTI DUKUNG
             ================================================== --}}
+            <aside
+                class="xl:sticky xl:top-5 xl:h-[calc(100vh-40px)]"
+            >
+
+                <section
+                    class="flex h-full flex-col rounded-2xl
+                        border border-slate-200 bg-white shadow-sm"
+                >
+
+                    {{-- =================================================
+                        HEADER
+                    ================================================== --}}
+                    <div class="flex items-center justify-between
+                                border-b border-slate-200 px-5 py-4">
+
+                        <div>
+
+                            <h2 class="text-sm font-bold uppercase
+                                    tracking-wide text-sky-950">
+                                Dokumentasi Kegiatan
+                            </h2>
+
+                            <p class="mt-1 text-[10px] text-slate-400">
+                                Dokumentasi berdasarkan periode pelaksanaan
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    {{-- =================================================
+                        CONTENT
+                    ================================================== --}}
+                    <div class="flex-1 overflow-y-auto p-5">
+
+                        @forelse($pelaksanaan as $item)
+
+                            @php
+
+                                /*
+                                |--------------------------------------------------------------------------
+                                | FREKUENSI KEGIATAN
+                                |--------------------------------------------------------------------------
+                                */
+                                $frekuensi = strtolower(
+                                    trim($kegiatan->frekuensi_pelaksanaan ?? '')
+                                );
+
+
+                                /*
+                                |--------------------------------------------------------------------------
+                                | NOMOR PERIODE
+                                |--------------------------------------------------------------------------
+                                */
+                                $periode = (int) $item->periode_ke;
+
+
+                                /*
+                                |--------------------------------------------------------------------------
+                                | NAMA PERIODE
+                                |--------------------------------------------------------------------------
+                                */
+                                if (str_contains($frekuensi, 'triwulan')) {
+
+                                    $romawi = match ($periode) {
+                                        1 => 'I',
+                                        2 => 'II',
+                                        3 => 'III',
+                                        4 => 'IV',
+                                        default => (string) $periode,
+                                    };
+
+                                    $namaPeriode = 'Triwulan ' . $romawi;
+
+
+                                } elseif (str_contains($frekuensi, 'semester')) {
+
+                                    $romawi = match ($periode) {
+                                        1 => 'I',
+                                        2 => 'II',
+                                        default => (string) $periode,
+                                    };
+
+                                    $namaPeriode = 'Semester ' . $romawi;
+
+
+                                } elseif (str_contains($frekuensi, 'bulan')) {
+
+                                    $namaPeriode = 'Bulan ' . $periode;
+                                    $romawi = $periode;
+
+
+                                } elseif (str_contains($frekuensi, 'tahun')) {
+
+                                    $namaPeriode = 'Tahun ke-' . $periode;
+                                    $romawi = $periode;
+
+
+                                } else {
+
+                                    $namaPeriode = 'Periode ' . $periode;
+                                    $romawi = $periode;
+
+                                }
+
+
+                                /*
+                                |--------------------------------------------------------------------------
+                                | STATUS
+                                |--------------------------------------------------------------------------
+                                */
+                                $status = strtolower(
+                                    trim($item->status_pelaksanaan ?? 'menunggu')
+                                );
+
+
+                                /*
+                                |--------------------------------------------------------------------------
+                                | JENIS BUKTI DUKUNG
+                                |--------------------------------------------------------------------------
+                                |
+                                | Nilai diambil dari:
+                                | $kegiatan->jenis_bukti
+                                |
+                                | Contoh:
+                                | PDF
+                                | IMG
+                                | Image
+                                | PDF / IMG
+                                |
+                                */
+                                $jenisBukti = strtolower(
+                                    trim($kegiatan->jenis_bukti ?? '')
+                                );
+
+
+                                /*
+                                |--------------------------------------------------------------------------
+                                | ACCEPT FILE
+                                |--------------------------------------------------------------------------
+                                */
+                                $accept = '';
+                                $labelJenisBukti = '';
+
+
+                                if (
+                                    str_contains($jenisBukti, 'pdf') &&
+                                    (
+                                        str_contains($jenisBukti, 'img') ||
+                                        str_contains($jenisBukti, 'image') ||
+                                        str_contains($jenisBukti, 'gambar') ||
+                                        str_contains($jenisBukti, 'foto')
+                                    )
+                                ) {
+
+                                    // PDF + gambar
+                                    $accept = '.pdf,.jpg,.jpeg,.png,.webp';
+                                    $labelJenisBukti = 'PDF atau Gambar';
+
+
+                                } elseif (str_contains($jenisBukti, 'pdf')) {
+
+                                    // Hanya PDF
+                                    $accept = '.pdf,application/pdf';
+                                    $labelJenisBukti = 'PDF';
+
+
+                                } elseif (
+                                    str_contains($jenisBukti, 'img') ||
+                                    str_contains($jenisBukti, 'image') ||
+                                    str_contains($jenisBukti, 'gambar') ||
+                                    str_contains($jenisBukti, 'foto')
+                                ) {
+
+                                    // Hanya gambar
+                                    $accept = '.jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp';
+                                    $labelJenisBukti = 'Gambar';
+
+
+                                } else {
+
+                                    // Default
+                                    $accept = '.pdf,.jpg,.jpeg,.png,.webp';
+                                    $labelJenisBukti = 'PDF atau Gambar';
+
+                                }
+
+                            @endphp
+
+
+                            {{-- =================================================
+                                SATU PERIODE
+                            ================================================== --}}
+                            <div
+                                class="{{ !$loop->last ? 'mb-4' : '' }}
+                                    rounded-xl border border-slate-200
+                                    bg-white"
+                            >
+
+                                {{-- =================================================
+                                    HEADER PERIODE
+                                ================================================== --}}
+                                <div
+                                    class="flex items-center justify-between
+                                        border-b border-slate-200
+                                        bg-slate-50 px-4 py-4"
+                                >
+
+                                    <div class="flex items-center gap-3">
+
+                                        {{-- Nomor --}}
+                                        <div
+                                            class="flex h-8 w-8 shrink-0
+                                                items-center justify-center
+                                                rounded-lg bg-sky-100"
+                                        >
+
+                                            <span
+                                                class="text-[10px] font-bold
+                                                    text-sky-700"
+                                            >
+                                                {{ $romawi }}
+                                            </span>
+
+                                        </div>
+
+
+                                        {{-- Informasi --}}
+                                        <div>
+
+                                            <p
+                                                class="text-xs font-bold
+                                                    text-slate-700"
+                                            >
+                                                {{ $namaPeriode }}
+                                            </p>
+
+
+                                            <p
+                                                class="mt-0.5 text-[9px]
+                                                    text-slate-400"
+                                            >
+
+                                                @if($item->waktu_pelaksanaan)
+
+                                                    {{ \Carbon\Carbon::parse(
+                                                        $item->waktu_pelaksanaan
+                                                    )->translatedFormat('d F Y') }}
+
+                                                @else
+
+                                                    Tanggal belum ditentukan
+
+                                                @endif
+
+                                            </p>
+
+                                        </div>
+
+                                    </div>
+
+
+                                    {{-- =================================================
+                                        STATUS
+                                    ================================================== --}}
+                                    <div>
+
+                                        @if($status === 'selesai')
+
+                                            <span
+                                                class="rounded-full bg-emerald-50
+                                                    px-2 py-0.5 text-[8px]
+                                                    font-bold text-emerald-700"
+                                            >
+                                                Selesai
+                                            </span>
+
+                                        @elseif($status === 'berlangsung')
+
+                                            <span
+                                                class="rounded-full bg-amber-50
+                                                    px-2 py-0.5 text-[8px]
+                                                    font-bold text-amber-700"
+                                            >
+                                                Berlangsung
+                                            </span>
+
+                                        @elseif($status === 'terlambat')
+
+                                            <span
+                                                class="rounded-full bg-rose-50
+                                                    px-2 py-0.5 text-[8px]
+                                                    font-bold text-rose-700"
+                                            >
+                                                Terlambat
+                                            </span>
+
+                                        @else
+
+                                            <span
+                                                class="rounded-full bg-slate-100
+                                                    px-2 py-0.5 text-[8px]
+                                                    font-bold text-slate-500"
+                                            >
+                                                Menunggu
+                                            </span>
+
+                                        @endif
+
+                                    </div>
+
+                                </div>
+
+
+                                {{-- =================================================
+                                    FILE / UPLOAD
+                                ================================================== --}}
+                                <div class="p-4">
+
+                                    {{-- =================================================
+                                        SUDAH ADA DOKUMENTASI
+                                    ================================================== --}}
+                                    @if(!empty($item->dokumentasi))
+
+                                        <div
+                                            class="flex items-center gap-3
+                                                rounded-lg border
+                                                border-slate-200
+                                                bg-white p-3"
+                                        >
+
+                                            {{-- ICON --}}
+                                            <div
+                                                class="flex h-9 w-9 shrink-0
+                                                    items-center justify-center
+                                                    rounded-lg bg-blue-50"
+                                            >
+
+                                                @if(
+                                                    str_contains(
+                                                        strtolower($item->dokumentasi),
+                                                        '.pdf'
+                                                    )
+                                                )
+
+                                                    <i
+                                                        data-lucide="file-text"
+                                                        class="h-4 w-4 text-blue-500"
+                                                    ></i>
+
+                                                @else
+
+                                                    <i
+                                                        data-lucide="image"
+                                                        class="h-4 w-4 text-blue-500"
+                                                    ></i>
+
+                                                @endif
+
+                                            </div>
+
+
+                                            {{-- INFORMASI --}}
+                                            <div class="min-w-0 flex-1">
+
+                                                <p
+                                                    class="truncate text-xs
+                                                        font-semibold
+                                                        text-slate-700"
+                                                >
+                                                    Dokumentasi {{ $namaPeriode }}
+                                                </p>
+
+
+                                                <p
+                                                    class="mt-1 truncate text-[9px]
+                                                        text-slate-400"
+                                                >
+                                                    Dokumentasi {{ $labelJenisBukti }}
+                                                </p>
+
+                                            </div>
+
+
+                                            {{-- ACTION --}}
+                                            <div
+                                                class="flex shrink-0
+                                                    items-center gap-1"
+                                            >
+
+                                                {{-- LIHAT --}}
+                                                <a
+                                                    href="{{ asset('storage/' . $item->dokumentasi) }}"
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    title="Lihat dokumentasi"
+                                                    class="inline-flex items-center
+                                                        justify-center rounded-md
+                                                        border border-sky-200
+                                                        bg-sky-50 p-1.5
+                                                        text-sky-700
+                                                        transition
+                                                        hover:bg-sky-100"
+                                                >
+
+                                                    <i
+                                                        data-lucide="eye"
+                                                        class="h-3.5 w-3.5"
+                                                    ></i>
+
+                                                </a>
+
+
+                                                {{-- GANTI --}}
+                                                <form
+                                                    action="{{route('upload.dokumentasi', $item->id) }}"
+                                                    method="POST"
+                                                    enctype="multipart/form-data"
+                                                    class="inline"
+                                                >
+
+                                                    @csrf
+
+                                                    <input
+                                                        type="file"
+                                                        name="dokumentasi"
+                                                        id="ganti-dokumentasi-{{ $item->id }}"
+                                                        class="hidden"
+                                                        accept="{{ $accept }}"
+                                                        onchange="this.form.submit()"
+                                                    >
+
+                                                    <label
+                                                        for="ganti-dokumentasi-{{ $item->id }}"
+                                                        title="Ganti dokumentasi"
+                                                        class="inline-flex cursor-pointer
+                                                            items-center justify-center
+                                                            rounded-md
+                                                            border border-amber-200
+                                                            bg-amber-50 p-1.5
+                                                            text-amber-700
+                                                            transition
+                                                            hover:bg-amber-100"
+                                                    >
+
+                                                        <i
+                                                            data-lucide="refresh-cw"
+                                                            class="h-3.5 w-3.5"
+                                                        ></i>
+
+                                                    </label>
+
+                                                </form>
+
+                                            </div>
+
+                                        </div>
+
+
+                                    @else
+
+
+                                        {{-- =================================================
+                                            BELUM ADA DOKUMENTASI
+                                        ================================================== --}}
+                                        <form
+                                            action="{{route('upload.dokumentasi', $item->id) }}"
+                                            method="POST"
+                                            enctype="multipart/form-data"
+                                        >
+
+                                            @csrf
+
+                                            <input
+                                                type="file"
+                                                name="dokumentasi"
+                                                id="dokumentasi-{{ $item->id }}"
+                                                class="hidden"
+                                                accept="{{ $accept }}"
+                                                onchange="this.form.submit()"
+                                            >
+
+
+                                            {{-- UPLOAD AREA --}}
+                                            <label
+                                                for="dokumentasi-{{ $item->id }}"
+                                                class="flex w-full cursor-pointer
+                                                    flex-col items-center justify-center
+                                                    rounded-xl border-2 border-dashed
+                                                    border-slate-200 bg-slate-50
+                                                    px-4 py-5 text-center
+                                                    transition
+                                                    hover:border-sky-300
+                                                    hover:bg-sky-50"
+                                            >
+
+                                                {{-- ICON --}}
+                                                <div
+                                                    class="flex h-8 w-8
+                                                        items-center justify-center
+                                                        rounded-full bg-white
+                                                        shadow-sm"
+                                                >
+
+                                                    <i
+                                                        data-lucide="upload"
+                                                        class="h-4 w-4 text-sky-600"
+                                                    ></i>
+
+                                                </div>
+
+
+                                                {{-- TITLE --}}
+                                                <p
+                                                    class="mt-3 text-xs font-semibold
+                                                        text-slate-700"
+                                                >
+                                                    Upload Dokumentasi
+                                                </p>
+
+
+                                                {{-- JENIS BUKTI --}}
+                                                <p
+                                                    class="mt-1 text-[10px]
+                                                        font-medium text-sky-600"
+                                                >
+                                                    {{ $labelJenisBukti }}
+                                                </p>
+
+
+                                                {{-- SIZE --}}
+                                                <p
+                                                    class="mt-1 text-[10px]
+                                                        text-slate-400"
+                                                >
+                                                    Maksimal 5 MB
+                                                </p>
+
+                                            </label>
+
+                                        </form>
+
+                                    @endif
+
+                                </div>
+
+                            </div>
+
+
+                        @empty
+
+
+                            {{-- =================================================
+                                BELUM ADA PELAKSANAAN
+                            ================================================== --}}
+                            <div
+                                class="rounded-xl border border-dashed
+                                    border-slate-300 bg-slate-50
+                                    p-6 text-center"
+                            >
+
+                                <i
+                                    data-lucide="calendar-x"
+                                    class="mx-auto h-6 w-6 text-slate-300"
+                                ></i>
+
+
+                                <p
+                                    class="mt-2 text-sm font-medium
+                                        text-slate-500"
+                                >
+                                    Belum ada pelaksanaan
+                                </p>
+
+
+                                <p
+                                    class="mt-1 text-[10px]
+                                        text-slate-400"
+                                >
+                                    Data pelaksanaan kegiatan belum tersedia.
+                                </p>
+
+                            </div>
+
+                        @endforelse
+
+                    </div>
+
+                </section>
+
+            </aside>
+            <!--
             <aside class="xl:sticky xl:top-5 xl:h-[calc(100vh-40px)]">
 
                 <section class="flex h-full flex-col
                                 rounded-2xl border border-slate-200
                                 bg-white shadow-sm">
 
-                    {{-- HEADER --}}
+                    {{-- =====================================================
+                        HEADER
+                    ====================================================== --}}
                     <div class="border-b border-slate-200 px-5 py-4">
 
                         <div class="flex items-center gap-3">
@@ -533,12 +1334,12 @@
                                         rounded-lg bg-sky-50">
 
                                 <i data-lucide="folder-check"
-                                class="h-4 w-4 text-sky-700">
-                                </i>
+                                class="h-4 w-4 text-sky-700"></i>
 
                             </div>
 
                             <div>
+
                                 <h2 class="text-xs font-bold uppercase tracking-wide text-slate-700">
                                     Dokumentasi Kegiatan
                                 </h2>
@@ -546,480 +1347,403 @@
                                 <p class="mt-0.5 text-[10px] text-slate-400">
                                     Dokumentasi pelaksanaan kegiatan berdasarkan periode
                                 </p>
+
                             </div>
 
                         </div>
 
                     </div>
 
-                    <div class="space-y-4 p-5">
 
-                        {{-- =================================================
-                            PERIODE DOKUMENTASI
-                        ================================================== --}}
+                    {{-- =====================================================
+                        DATA PELAKSANAAN
+                    ====================================================== --}}
+                    <div class="space-y-4 overflow-y-auto p-5">
+
                         <div class="overflow-hidden rounded-xl border border-slate-200">
 
-                            {{-- =================================================
-                                TRIWULAN I
-                            ================================================== --}}
-                            <div class="border-b border-slate-200 bg-white">
+                            @forelse($pelaksanaan as $item)
 
-                                {{-- Header periode --}}
-                                <div class="flex items-center justify-between
-                                            border-b border-slate-100 bg-slate-50
-                                            px-4 py-3">
+                                @php
 
-                                    <div class="flex items-center gap-3">
+                                    $periode = (int) $item->periode_ke;
 
-                                        <div class="flex h-7 w-7 items-center justify-center
-                                                    rounded-lg bg-sky-100">
+                                    $frekuensi = strtolower(
+                                        trim($kegiatan->frekuensi_pelaksanaan ?? '')
+                                    );
 
-                                            <span class="text-[10px] font-bold text-sky-700">
-                                                I
-                                            </span>
+                                    /*
+                                    |--------------------------------------------------------------------------
+                                    | Nama periode berdasarkan frekuensi
+                                    |--------------------------------------------------------------------------
+                                    */
 
-                                        </div>
+                                    if (str_contains($frekuensi, 'triwulan')) {
 
-                                        <div>
+                                        $nomorPeriode = match ($periode) {
+                                            1 => 'I',
+                                            2 => 'II',
+                                            3 => 'III',
+                                            4 => 'IV',
+                                            default => $periode,
+                                        };
 
-                                            <p class="text-xs font-bold text-slate-700">
-                                                Triwulan I
-                                            </p>
+                                        $namaPeriode = 'Triwulan ' . $nomorPeriode;
 
-                                            <p class="mt-0.5 text-[9px] text-slate-400">
-                                                16 Maret 2026
-                                            </p>
+                                    } elseif (str_contains($frekuensi, 'semester')) {
 
-                                        </div>
+                                        $nomorPeriode = match ($periode) {
+                                            1 => 'I',
+                                            2 => 'II',
+                                            default => $periode,
+                                        };
 
-                                    </div>
+                                        $namaPeriode = 'Semester ' . $nomorPeriode;
 
+                                    } elseif (str_contains($frekuensi, 'bulan')) {
 
-                                    {{-- Status --}}
-                                    <div class="text-right">
-                                        <div class="mt-1 flex justify-end">
+                                        $namaPeriode = 'Bulan ke-' . $periode;
 
-                                            <span class="rounded-full bg-emerald-50
-                                                        px-2 py-0.5 text-[8px]
-                                                        font-bold text-emerald-700">
-                                                Selesai
-                                            </span>
+                                    } elseif (str_contains($frekuensi, 'tahun')) {
 
-                                        </div>
+                                        $namaPeriode = 'Tahun ke-' . $periode;
 
-                                    </div>
+                                    } else {
 
-                                </div>
+                                        $namaPeriode = 'Periode ' . $periode;
 
+                                    }
 
-                                {{-- Isi --}}
-                                <div class="p-4">
 
-                                    <div class="flex items-center gap-3
-                                                rounded-lg border border-slate-200
-                                                bg-white p-3">
+                                    /*
+                                    |--------------------------------------------------------------------------
+                                    | Nomor yang ditampilkan di kotak kiri
+                                    |--------------------------------------------------------------------------
+                                    */
 
-                                        <div class="flex h-9 w-9 shrink-0 items-center
-                                                    justify-center rounded-lg bg-blue-50">
+                                    if (
+                                        str_contains($frekuensi, 'triwulan') ||
+                                        str_contains($frekuensi, 'semester')
+                                    ) {
 
-                                            <i data-lucide="file-text"
-                                            class="h-4 w-4 text-blue-500">
-                                            </i>
+                                        $romawi = match ($periode) {
+                                            1 => 'I',
+                                            2 => 'II',
+                                            3 => 'III',
+                                            4 => 'IV',
+                                            default => $periode,
+                                        };
 
-                                        </div>
+                                    } else {
 
+                                        $romawi = $periode;
 
-                                        <div class="min-w-0 flex-1">
+                                    }
 
-                                            <p class="truncate text-xs font-semibold
-                                                    text-slate-700">
-                                                Notulen_Rapat_Triwulan_I.pdf
-                                            </p>
 
-                                            <p class="mt-1 text-[9px] text-slate-400">
-                                                2.4 MB • 16 Maret 2026
-                                            </p>
+                                    /*
+                                    |--------------------------------------------------------------------------
+                                    | Status
+                                    |--------------------------------------------------------------------------
+                                    */
 
-                                        </div>
+                                    $status = strtolower(
+                                        trim($item->status_pelaksanaan ?? 'menunggu')
+                                    );
 
+                                    $jenisBukti = strtolower(trim($kegiatan->jenis_bukti ?? ''));
 
-                                        <div class="flex shrink-0 items-center gap-1">
-
-                                            {{-- Preview --}}
-                                            <button
-                                                type="button"
-                                                class="inline-flex items-center gap-1.5
-                                                    rounded-md border border-sky-200
-                                                    bg-sky-50 px-2 py-1
-                                                    text-[9px] font-semibold
-                                                    text-sky-700
-                                                    transition hover:bg-sky-100">
-
-                                                <i data-lucide="eye"
-                                                class="h-3.5 w-3.5">
-                                                </i>
-
-                                            </button>
-
-
-                                            {{-- Unduh --}}
-                                            <button
-                                                type="button"
-                                                class="inline-flex items-center gap-1.5
-                                                    rounded-md border border-emerald-200
-                                                    bg-emerald-50 px-2 py-1
-                                                    text-[9px] font-semibold
-                                                    text-emerald-700
-                                                    transition hover:bg-emerald-100">
-
-                                                <i data-lucide="download"
-                                                class="h-3.5 w-3.5">
-                                                </i>
-
-                                            </button>
-
-
-                                            {{-- Ganti --}}
-                                            <button
-                                                type="button"
-                                                class="inline-flex items-center gap-1.5
-                                                    rounded-md border border-amber-200
-                                                    bg-amber-50 px-2 py-1
-                                                    text-[9px] font-semibold
-                                                    text-amber-700
-                                                    transition hover:bg-amber-100">
-
-                                                <i data-lucide="pencil"
-                                                class="h-3.5 w-3.5">
-                                                </i>
-
-                                            </button>
-
-                                        </div>
-
-                                    </div>
-
-                                </div>
-
-                            </div>
-
-
-                            {{-- =================================================
-                                TRIWULAN II — PERIODE AKTIF
-                            ================================================== --}}                              
-                            <div class="border-b border-slate-200 bg-white">
-
-                                {{-- Header periode --}}
-                                <div class="flex items-center justify-between
-                                            border-b border-slate-100 bg-slate-50
-                                            px-4 py-3">
-
-                                    <div class="flex items-center gap-3">
-
-                                        <div class="flex h-7 w-7 items-center justify-center
-                                                    rounded-lg bg-sky-100">
-
-                                            <span class="text-[10px] font-bold text-sky-700">
-                                                II
-                                            </span>
-
-                                        </div>
-
-                                        <div>
-
-                                            <p class="text-xs font-bold text-slate-700">
-                                                Triwulan II
-                                            </p>
-
-                                            <p class="mt-0.5 text-[9px] text-slate-400">
-                                                10 Juni 2026
-                                            </p>
-
-                                        </div>
-
-                                    </div>
-
-
-                                    {{-- Status --}}
-                                    <div class="text-right">
-                                        <div class="mt-1 flex justify-end">
-
-                                            <span class="rounded-full bg-emerald-50
-                                                        px-2 py-0.5 text-[8px]
-                                                        font-bold text-emerald-700">
-                                                Selesai
-                                            </span>
-
-                                        </div>
-
-                                    </div>
-
-                                </div>
-
-
-                                {{-- Isi --}}
-                                <div class="p-4">
-
-                                    <div class="flex items-center gap-3
-                                                rounded-lg border border-slate-200
-                                                bg-white p-3">
-
-                                        <div class="flex h-9 w-9 shrink-0 items-center
-                                                    justify-center rounded-lg bg-blue-50">
-
-                                            <i data-lucide="file-text"
-                                            class="h-4 w-4 text-blue-500">
-                                            </i>
-
-                                        </div>
-
-
-                                        <div class="min-w-0 flex-1">
-
-                                            <p class="truncate text-xs font-semibold
-                                                    text-slate-700">
-                                                Notulen_Rapat_Triwulan_II.pdf
-                                            </p>
-
-                                            <p class="mt-1 text-[9px] text-slate-400">
-                                                2.1 MB • 10 Juni 2026
-                                            </p>
-
-                                        </div>
-
-
-                                        <div class="flex shrink-0 items-center gap-1">
-
-                                            {{-- Preview --}}
-                                            <button
-                                                type="button"
-                                                class="inline-flex items-center gap-1.5
-                                                    rounded-md border border-sky-200
-                                                    bg-sky-50 px-2 py-1
-                                                    text-[9px] font-semibold
-                                                    text-sky-700
-                                                    transition hover:bg-sky-100">
-
-                                                <i data-lucide="eye"
-                                                class="h-3.5 w-3.5">
-                                                </i>
-
-                                            </button>
-
-
-                                            {{-- Unduh --}}
-                                            <button
-                                                type="button"
-                                                class="inline-flex items-center gap-1.5
-                                                    rounded-md border border-emerald-200
-                                                    bg-emerald-50 px-2 py-1
-                                                    text-[9px] font-semibold
-                                                    text-emerald-700
-                                                    transition hover:bg-emerald-100">
-
-                                                <i data-lucide="download"
-                                                class="h-3.5 w-3.5">
-                                                </i>
-
-                                            </button>
-
-
-                                            {{-- Ganti --}}
-                                            <button
-                                                type="button"
-                                                class="inline-flex items-center gap-1.5
-                                                    rounded-md border border-amber-200
-                                                    bg-amber-50 px-2 py-1
-                                                    text-[9px] font-semibold
-                                                    text-amber-700
-                                                    transition hover:bg-amber-100">
-
-                                                <i data-lucide="pencil"
-                                                class="h-3.5 w-3.5">
-                                                </i>
-
-                                            </button>
-
-                                        </div>
-
-                                    </div>
-
-                                </div>
-
-                            </div>
-
-
-                            {{-- =================================================
-                                TRIWULAN III — BELUM DIMULAI
-                            ================================================== --}}
-
-                            <div class="border-b border-slate-200 bg-white">
-
-                                {{-- Header periode --}}
-                                <div class="flex items-center justify-between
-                                            border-b border-slate-100 bg-slate-50
-                                            px-4 py-3">
-
-                                    <div class="flex items-center gap-3">
-
-                                        <div class="flex h-7 w-7 items-center justify-center
-                                                    rounded-lg bg-sky-100">
-
-                                            <span class="text-[10px] font-bold text-sky-700">
-                                                III
-                                            </span>
-
-                                        </div>
-
-                                        <div>
-
-                                            <div class="flex items-center gap-2">
-
-                                                <p class="text-xs font-bold text-slate-700">
-                                                    Triwulan III
-                                                </p>
-
-                                                <span class="rounded-full bg-emerald-50
-                                                            px-2 py-0.5 text-[8px]
-                                                            font-bold text-emerald-700">
-                                                    PERIODE AKTIF
+                                    if ($jenisBukti === 'pdf') {
+                                        $accept = '.pdf,application/pdf';
+                                        $formatLabel = 'PDF';
+                                    } elseif ($jenisBukti === 'img') {
+                                        $accept = '.jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp';
+                                        $formatLabel = 'JPG, JPEG, PNG, WEBP';
+                                    } else {
+                                        $accept = '';
+                                        $formatLabel = 'Format tidak ditentukan';
+                                    }
+
+                                @endphp
+
+
+                                {{-- =================================================
+                                    SATU PELAKSANAAN
+                                ================================================== --}}
+                                <div class="
+                                    {{ !$loop->last ? 'border-b border-slate-200' : '' }}
+                                    bg-white
+                                ">
+
+                                    {{-- =================================================
+                                        HEADER PERIODE
+                                    ================================================== --}}
+                                    <div class="flex items-center justify-between
+                                                border-b border-slate-100
+                                                bg-slate-50 px-4 py-3">
+
+                                        <div class="flex items-center gap-3">
+
+                                            {{-- Nomor periode --}}
+                                            <div class="flex h-7 w-7 shrink-0
+                                                        items-center justify-center
+                                                        rounded-lg bg-sky-100">
+
+                                                <span class="text-[10px] font-bold text-sky-700">
+                                                    {{ $romawi }}
                                                 </span>
 
                                             </div>
 
-                                            <p class="mt-0.5 text-[9px] text-slate-400">
-                                                15 September 2026
-                                            </p>
+
+                                            {{-- Nama + tanggal --}}
+                                            <div>
+
+                                                <p class="text-xs font-bold text-slate-700">
+                                                    {{ $namaPeriode }}
+                                                </p>
+
+                                                <p class="mt-0.5 text-[9px] text-slate-400">
+
+                                                    @if($item->waktu_pelaksanaan)
+
+                                                        {{ \Carbon\Carbon::parse($item->waktu_pelaksanaan)->translatedFormat('d F Y') }}
+
+                                                    @else
+
+                                                        Tanggal belum ditentukan
+
+                                                    @endif
+
+                                                </p>
+
+                                            </div>
+
+                                        </div>
+
+
+                                        {{-- =================================================
+                                            STATUS
+                                        ================================================== --}}
+                                        <div class="text-right">
+
+                                            @if($status === 'selesai')
+
+                                                <span class="rounded-full bg-emerald-50
+                                                            px-2 py-0.5 text-[8px]
+                                                            font-bold text-emerald-700">
+                                                    Selesai
+                                                </span>
+
+                                            @elseif($status === 'berlangsung')
+
+                                                <span class="rounded-full bg-amber-50
+                                                            px-2 py-0.5 text-[8px]
+                                                            font-bold text-amber-700">
+                                                    Berlangsung
+                                                </span>
+
+                                            @elseif($status === 'terlambat')
+
+                                                <span class="rounded-full bg-rose-50
+                                                            px-2 py-0.5 text-[8px]
+                                                            font-bold text-rose-700">
+                                                    Terlambat
+                                                </span>
+
+                                            @else
+
+                                                <span class="rounded-full bg-slate-100
+                                                            px-2 py-0.5 text-[8px]
+                                                            font-bold text-slate-500">
+                                                    Menunggu
+                                                </span>
+
+                                            @endif
 
                                         </div>
 
                                     </div>
 
-                                    {{-- Status --}}
-                                    {{-- <div class="text-right">
-                                        <div class="mt-1 flex justify-end">
 
-                                            <span class="rounded-full bg-emerald-50
-                                                        px-2 py-0.5 text-[8px]
-                                                        font-bold text-emerald-700">
-                                                Selesai
-                                            </span>
+                                    {{-- =================================================
+                                        ISI DOKUMENTASI
+                                    ================================================== --}}
+                                    <div class="p-4">
 
-                                        </div>
+                                        @if($item->dokumentasi)
 
-                                    </div> --}}
+                                            {{-- =========================================
+                                                SUDAH ADA DOKUMENTASI
+                                            ========================================== --}}
+                                            <div class="flex items-center gap-3
+                                                        rounded-lg border border-slate-200
+                                                        bg-white p-3">
 
+                                                {{-- Icon --}}
+                                                <div class="flex h-9 w-9 shrink-0
+                                                            items-center justify-center
+                                                            rounded-lg bg-blue-50">
+
+                                                    <i data-lucide="file-text"
+                                                    class="h-4 w-4 text-blue-500"></i>
+
+                                                </div>
+
+
+                                                {{-- Informasi dokumentasi --}}
+                                                <div class="min-w-0 flex-1">
+
+                                                    <p class="truncate text-xs font-semibold
+                                                            text-slate-700">
+
+                                                        Dokumentasi {{ $namaPeriode }}
+
+                                                    </p>
+
+                                                    <p class="mt-1 truncate text-[9px]
+                                                            text-slate-400">
+
+                                                        {{ $item->dokumentasi }}
+
+                                                    </p>
+
+                                                </div>
+
+
+                                                {{-- Action --}}
+                                                <div class="flex shrink-0 items-center gap-1">
+
+                                                    {{-- Buka dokumentasi --}}
+                                                    <a
+                                                        href="{{ $item->dokumentasi }}"
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        title="Buka dokumentasi"
+                                                        class="inline-flex items-center justify-center
+                                                            rounded-md border border-sky-200
+                                                            bg-sky-50 px-2 py-1
+                                                            text-sky-700
+                                                            transition hover:bg-sky-100">
+
+                                                        <i data-lucide="external-link"
+                                                        class="h-3.5 w-3.5"></i>
+
+                                                    </a>
+
+
+                                                    {{-- Ganti dokumentasi --}}
+                                                    <button
+                                                        type="button"
+                                                        title="Ganti dokumentasi"
+                                                        onclick="openDokumentasiModal(
+                                                            {{ $item->id }},
+                                                            @js($item->dokumentasi)
+                                                        )"
+                                                        class="inline-flex items-center justify-center
+                                                            rounded-md border border-amber-200
+                                                            bg-amber-50 px-2 py-1
+                                                            text-amber-700
+                                                            transition hover:bg-amber-100">
+
+                                                        <i data-lucide="pencil"
+                                                        class="h-3.5 w-3.5"></i>
+
+                                                    </button>
+
+                                                </div>
+
+                                            </div>
+
+
+                                        @else
+
+                                            {{-- =========================================
+                                                BELUM ADA DOKUMENTASI
+                                            ========================================== --}}
+                                            <button
+                                                type="button"
+                                                onclick="openDokumentasiModal(
+                                                    {{ $item->id }},
+                                                    ''
+                                                )"
+                                                class="flex w-full cursor-pointer
+                                                    flex-col items-center justify-center
+                                                    rounded-xl border-2 border-dashed
+                                                    border-slate-200 bg-slate-50
+                                                    px-4 py-5 text-center
+                                                    transition hover:border-sky-300
+                                                    hover:bg-sky-50">
+
+                                                <div class="flex h-8 w-8
+                                                            items-center justify-center
+                                                            rounded-full bg-white
+                                                            shadow-sm">
+
+                                                    <i data-lucide="upload"
+                                                    class="h-4 w-4 text-sky-600"></i>
+
+                                                </div>
+
+
+                                                <p class="mt-3 text-xs font-semibold
+                                                        text-slate-700">
+
+                                                    Upload Dokumentasi
+
+                                                </p>
+
+
+                                                <p class="mt-1 text-[10px] text-slate-400">
+
+                                                    Tambahkan link dokumentasi
+
+                                                </p>
+
+                                            </button>
+
+                                        @endif
+
+                                    </div>
 
                                 </div>
 
+                            @empty
 
-                                {{-- Upload --}}
-                                <div class="p-4">
+                                {{-- =================================================
+                                    BELUM ADA PELAKSANAAN
+                                ================================================== --}}
+                                <div class="px-4 py-8 text-center">
 
-                                    <label
-                                        class="flex cursor-pointer flex-col
+                                    <div class="mx-auto flex h-10 w-10
                                                 items-center justify-center
-                                                rounded-xl border-2 border-dashed
-                                                border-slate-200 bg-slate-50
-                                                px-4 py-4 text-center
-                                                transition hover:border-sky-300
-                                                hover:bg-sky-50">
+                                                rounded-full bg-slate-100">
 
-                                        <div class="flex h-8 w-8
-                                                    items-center justify-center
-                                                    rounded-full bg-white
-                                                    shadow-sm">
-
-                                            <i data-lucide="upload"
-                                                class="h-4 w-4 text-sky-600">
-                                            </i>
-
-                                        </div>
-
-
-                                        <p class="mt-3 text-xs font-semibold
-                                                    text-slate-700">
-
-                                            Upload Bukti Dukung
-
-                                        </p>
-
-                                        <p class="mt-1 text-[10px]
-                                                    text-slate-400">
-
-                                            PDF
-
-                                        </p>
-
-                                        <p class="mt-1 text-[10px]
-                                                    text-slate-400">
-
-                                            Maksimal 5 MB
-
-                                        </p>
-
-
-                                        <input
-                                            type="file"
-                                            class="hidden"
-                                            single
-                                            accept=".pdf"
-                                        >
-
-                                    </label>
-
-                                </div>
-                            </div>
-
-
-                            {{-- =================================================
-                                TRIWULAN IV — BELUM DIMULAI
-                            ================================================== --}}
-                            <div class="bg-white">
-
-                                <div class="flex items-center justify-between
-                                            px-4 py-3">
-
-                                    <div class="flex items-center gap-3">
-
-                                        <div class="flex h-7 w-7 items-center justify-center
-                                                    rounded-lg bg-slate-100">
-
-                                            <span class="text-[10px] font-bold text-slate-500">
-                                                IV
-                                            </span>
-
-                                        </div>
-
-                                        <div>
-
-                                            <p class="text-xs font-bold text-slate-600">
-                                                Triwulan IV
-                                            </p>
-
-                                            <p class="mt-0.5 text-[9px] text-slate-400">
-                                                Oktober – Desember 2026
-                                            </p>
-
-                                        </div>
+                                        <i data-lucide="calendar-x"
+                                        class="h-5 w-5 text-slate-400"></i>
 
                                     </div>
 
+                                    <p class="mt-3 text-xs font-semibold text-slate-600">
+                                        Belum ada pelaksanaan
+                                    </p>
 
-                                    <span class="rounded-full bg-slate-100 px-2.5 py-1
-                                                text-[9px] font-semibold text-slate-500">
-                                        Belum Dimulai
-                                    </span>
+                                    <p class="mt-1 text-[10px] text-slate-400">
+                                        Data pelaksanaan kegiatan belum tersedia.
+                                    </p>
 
                                 </div>
 
-                            </div>
+                            @endforelse
 
                         </div>
+
                     </div>
+
                 </section>
 
             </aside>
+        -->
 
         </div>
 
@@ -1045,12 +1769,17 @@ LUCIDE ICON
 
 <script>
 
-    let editPelaksanaanId = null;
+  
+
+    let selectedPelaksanaanId = null;
 
 
-    function openEditJadwal(id, waktu) {
-
-        editPelaksanaanId = id;
+    /* =========================================================
+    BUKA MODAL EDIT JADWAL
+    ========================================================= */
+    function openEditJadwal(id, tanggal)
+    {
+        selectedPelaksanaanId = id;
 
         const modal =
             document.getElementById('editJadwalModal');
@@ -1065,16 +1794,26 @@ LUCIDE ICON
             document.getElementById('editWaktuError');
 
 
-        // Isi tanggal saat ini
-        input.value = waktu;
+        /*
+        |--------------------------------------------------------------------------
+        | Isi tanggal input
+        |--------------------------------------------------------------------------
+        */
+        input.value = tanggal ?? '';
 
-        // Tampilkan tanggal saat ini
-        if (waktu) {
 
-            const date = new Date(waktu + 'T00:00:00');
+        /*
+        |--------------------------------------------------------------------------
+        | Tampilkan tanggal saat ini
+        |--------------------------------------------------------------------------
+        */
+        if (tanggal) {
+
+            const date = new Date(tanggal + 'T00:00:00');
 
             current.textContent =
                 date.toLocaleDateString('id-ID', {
+                    weekday: 'long',
                     day: 'numeric',
                     month: 'long',
                     year: 'numeric'
@@ -1087,12 +1826,20 @@ LUCIDE ICON
         }
 
 
-        // Bersihkan error
+        /*
+        |--------------------------------------------------------------------------
+        | Reset error
+        |--------------------------------------------------------------------------
+        */
         error.textContent = '';
         error.classList.add('hidden');
 
 
-        // Tampilkan modal
+        /*
+        |--------------------------------------------------------------------------
+        | Tampilkan modal
+        |--------------------------------------------------------------------------
+        */
         modal.classList.remove('hidden');
         modal.classList.add('flex');
 
@@ -1103,170 +1850,105 @@ LUCIDE ICON
     }
 
 
-    function closeEditJadwal() {
-
+    /* =========================================================
+    TUTUP MODAL
+    ========================================================= */
+    function closeEditJadwal()
+    {
         const modal =
             document.getElementById('editJadwalModal');
 
         modal.classList.add('hidden');
         modal.classList.remove('flex');
 
-        editPelaksanaanId = null;
+        selectedPelaksanaanId = null;
     }
 
 
+    /* =========================================================
+    SIMPAN JADWAL
+    ========================================================= */
     async function saveEditJadwal() {
 
-        const input =
-            document.getElementById('editWaktuPelaksanaan');
+        const kegiatanId = window.editKegiatanId;
+        const tanggal = document.getElementById('editWaktuPelaksanaan').value;
+        const errorElement = document.getElementById('editWaktuError');
+        const button = document.getElementById('btnSimpanWaktu');
 
-        const error =
-            document.getElementById('editWaktuError');
+        errorElement.classList.add('hidden');
+        errorElement.textContent = '';
 
-        const button =
-            document.getElementById('btnSimpanWaktu');
-
-        const waktu = input.value;
-
-
-        // Reset error
-        error.textContent = '';
-        error.classList.add('hidden');
-
-
-        // Validasi frontend
-        if (!waktu) {
-
-            error.textContent =
-                'Tanggal pelaksanaan wajib diisi.';
-
-            error.classList.remove('hidden');
-
+        if (!tanggal) {
+            errorElement.textContent = 'Tanggal wajib dipilih.';
+            errorElement.classList.remove('hidden');
             return;
         }
 
-
-        // Pastikan tanggal > hari ini
-        const hariIni = new Date();
-
-        hariIni.setHours(0, 0, 0, 0);
-
-        const tanggalDipilih =
-            new Date(waktu + 'T00:00:00');
-
-
-        if (tanggalDipilih <= hariIni) {
-
-            error.textContent =
-                'Tanggal pelaksanaan harus setelah hari ini.';
-
-            error.classList.remove('hidden');
-
-            return;
-        }
-
-
-        // Loading
         button.disabled = true;
-
         button.innerHTML = `
-            <i data-lucide="loader-2"
-               class="h-3.5 w-3.5 animate-spin"></i>
+            <i data-lucide="loader-2" class="h-3.5 w-3.5 animate-spin"></i>
             Menyimpan...
         `;
-
-        if (typeof lucide !== 'undefined') {
-            lucide.createIcons();
-        }
-
 
         try {
 
             const response = await fetch(
-                `/pelaksanaan/${editPelaksanaanId}/waktu`,
+                `/pelaksanaan/${selectedPelaksanaanId}/waktu`,
                 {
                     method: 'PUT',
 
                     headers: {
                         'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document
+                            .querySelector('meta[name="csrf-token"]')
+                            .getAttribute('content'),
 
-                        'Accept': 'application/json',
-
-                        'X-CSRF-TOKEN':
-                            document.querySelector(
-                                'meta[name="csrf-token"]'
-                            ).getAttribute('content')
+                        'Accept': 'application/json'
                     },
 
                     body: JSON.stringify({
-                        waktu_pelaksanaan: waktu
+                        waktu_pelaksanaan: tanggal
                     })
                 }
             );
 
-
-            const data = await response.json();
-
+            const result = await response.json();
 
             if (!response.ok) {
-
-                // Error validasi Laravel
-                if (data.errors) {
-
-                    const firstError =
-                        Object.values(data.errors)[0][0];
-
-                    error.textContent = firstError;
-
-                } else {
-
-                    error.textContent =
-                        data.message ||
-                        'Terjadi kesalahan saat menyimpan data.';
-
-                }
-
-                error.classList.remove('hidden');
-
-                return;
+                throw new Error(
+                    result.message || 'Gagal memperbarui tanggal.'
+                );
             }
 
+            // ==========================================
+            // BERHASIL
+            // ==========================================
 
-            // Berhasil
             closeEditJadwal();
 
-            // Reload supaya tanggal dan status terbaru
-            // langsung berasal dari database
+            // Refresh halaman agar data terbaru dari database tampil
             window.location.reload();
 
+        } catch (error) {
 
-        } catch (err) {
-
-            console.error(err);
-
-            error.textContent =
-                'Tidak dapat terhubung ke server.';
-
-            error.classList.remove('hidden');
-
-
-        } finally {
+            errorElement.textContent = error.message;
+            errorElement.classList.remove('hidden');
 
             button.disabled = false;
 
             button.innerHTML = `
-                <i data-lucide="save"
-                   class="h-3.5 w-3.5"></i>
+                <i data-lucide="save" class="h-3.5 w-3.5"></i>
                 Simpan
             `;
 
             if (typeof lucide !== 'undefined') {
                 lucide.createIcons();
             }
-
         }
-
     }
+
+    
+
 
 </script>
 

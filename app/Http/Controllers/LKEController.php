@@ -9,6 +9,7 @@ use App\Models\RiwayatPenilaianLKE;
 use App\Models\SubPilarLKE;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class LkeController extends Controller
 {
@@ -195,14 +196,72 @@ class LkeController extends Controller
             ->firstOrFail();
 
         $subpilar = $pertanyaan->subpilar;
+        $role = strtolower(Auth::user()->role ?? '');
+
+            $isAdminSekretaris = in_array(
+                $role,
+                ['admin', 'sekretaris']
+            );
+
+            $semuaBuktiLengkap =
+                $this->buktiDukungLengkap($pertanyaan);
+
+            $pemeriksaanTerakhir =
+                $pertanyaan->pemeriksaanTerakhir;
+
+            /*
+            |--------------------------------------------------------------------------
+            | TENTUKAN TAHAP
+            |--------------------------------------------------------------------------
+            */
+
+            if (!$isAdminSekretaris) {
+
+                $tahap = 'dasar';
+
+            } elseif (!$semuaBuktiLengkap) {
+
+                $tahap = 'dasar';
+
+            } elseif (!$pemeriksaanTerakhir) {
+
+                $tahap = 'pemeriksaan';
+
+            } elseif (
+                $pemeriksaanTerakhir->status_pemeriksaan === 'sesuai'
+                && is_null($pemeriksaanTerakhir->jawaban)
+            ) {
+
+                $tahap = 'penilaian';
+
+            } elseif (
+                $pemeriksaanTerakhir->status_pemeriksaan === 'sesuai'
+                && !is_null($pemeriksaanTerakhir->jawaban)
+            ) {
+
+                $tahap = 'selesai';
+
+            } else {
+
+                /*
+                |--------------------------------------------------------------------------
+                | STATUS PERBAIKAN
+                |--------------------------------------------------------------------------
+                */
+
+                $tahap = 'pemeriksaan';
+            }
 
         return view('detail-lke', compact(
             'pertanyaan',
             'subpilar',
+            'tahap',
+            'semuaBuktiLengkap'
         ));
     }
 
 
+    
     public function simpanRiwayatPenilaian($periode)
     {
         $subpilar = SubPilarLKE::all();
@@ -364,25 +423,15 @@ class LkeController extends Controller
             $pertanyaan->id_pertanyaan
         )->get();
 
-        /*
-        | Tidak punya bukti dukung
-        | berarti belum lengkap
-        */
-
         if ($buktiDukung->isEmpty()) {
             return false;
         }
 
         $total = $buktiDukung->count();
 
-        $terisi = $buktiDukung->filter(
-            function ($item) {
-
-                return !empty(
-                    $item->link_bukti_dukung
-                );
-            }
-        )->count();
+        $terisi = $buktiDukung->filter(function ($item) {
+            return !empty($item->link_bukti_dukung);
+        })->count();
 
         return $terisi === $total;
     }

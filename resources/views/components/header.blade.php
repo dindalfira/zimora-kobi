@@ -23,6 +23,21 @@
             type="button"
             class="flex items-center gap-1 rounded-lg px-2 py-2"
         >
+
+        @auth
+                @php
+                    $user = Auth::user();
+
+                    // Ambil nama untuk avatar
+                    $namaUser = $user->name ?? $user->username ?? 'User';
+
+                    // Ambil huruf pertama nama
+                    $inisial = strtoupper(substr($namaUser, 0, 1));
+
+                    // Role dari database
+                    $roleUser = $user->role ?? 'User';
+                @endphp
+
             {{-- Informasi pengguna --}}
             <div class="min-w-0 text-left py-2">
 
@@ -31,7 +46,7 @@
                 </div> --}}
 
                 <div class="text-xs text-slate-600 mr-2">
-                    Sekretaris
+                    {{ $namaUser }}
                 </div>
 
             </div>
@@ -40,28 +55,28 @@
             <div
                 class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-cyan-800 text-sm font-semibold text-white mr-2 "
             >
-                S
+                 {{ $inisial }}
             </div>
+
+            @else
+
+                <div class="min-w-0 text-left py-2">
+                    <div class="text-xs text-slate-600 mr-2">
+                        Guest
+                    </div>
+                </div>
+
+                <div
+                    class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-cyan-800 text-sm font-semibold text-white mr-2"
+                >
+                    G
+                </div>
+
+            @endauth
 
 
         </button>
 
-
-        {{-- <div class="flex h-7 w-7 items-center justify-center rounded-full bg-cyan-900 text-white">
-            P
-        </div>
-
-        <div class="text-left mr-2">
-
-            <div class="text-sm font-semibold text-sky-950">
-                Putra
-            </div>
-
-            <div class="text-xs text-zinc-700">
-                Sekretaris
-            </div>
-
-        </div> --}}
 
         
 

@@ -16,7 +16,7 @@ class PelaksanaanKegiatan extends Model
         'periode_ke',
         'waktu_pelaksanaan',
         'dokumentasi',
-        // 'status_pelaksanaan',
+        'status_pelaksanaan',
     ];
 
     protected $casts = [
@@ -25,7 +25,7 @@ class PelaksanaanKegiatan extends Model
 
     public function kegiatan()
     {
-        return $this->belongsTo(Kegiatan::class);
+        return $this->belongsTo(Kegiatan::class, 'kegiatan_id');
     }
 
     public function tentukanStatusPelaksanaan()
@@ -60,6 +60,44 @@ class PelaksanaanKegiatan extends Model
 
 
         // Jadwal sudah lewat
+        return 'terlambat';
+    }
+
+    
+    public function getStatusAktualAttribute()
+    {
+        if (!empty($this->dokumentasi)) {
+            return 'selesai';
+        }
+
+        if (empty($this->waktu_pelaksanaan)) {
+            return 'menunggu';
+        }
+
+        $tanggal = Carbon::parse($this->waktu_pelaksanaan);
+        $sekarang = Carbon::today();
+
+        // Tahun depan / masa depan
+        if ($tanggal->year > $sekarang->year) {
+            return 'menunggu';
+        }
+
+        // Tahun sudah lewat
+        if ($tanggal->year < $sekarang->year) {
+            return 'terlambat';
+        }
+
+        // Bulan berikutnya
+        if ($tanggal->month > $sekarang->month) {
+            return 'menunggu';
+        }
+
+        // Bulan sekarang
+        if ($tanggal->month === $sekarang->month) {
+            return 'berlangsung';
+        }
+
+        // Bulan sudah lewat
         return 'terlambat';
     }
 }

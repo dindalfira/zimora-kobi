@@ -80,6 +80,7 @@
 
 
         {{-- Pengaturan --}}
+        @if(Auth::user()->role === 'admin')
         <a href="{{ route('pengaturan') }}"
            class="flex items-center rounded-lg px-4 py-2.5 text-xs font-bold tracking-wide transition
            {{ request()->routeIs('pengaturan')
@@ -90,6 +91,7 @@
 
             Pengaturan
         </a>
+        @endif
 
     </nav>
 

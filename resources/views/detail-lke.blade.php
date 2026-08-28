@@ -1,7 +1,26 @@
 @extends('layouts.app')
 
 @section('title', 'LKE')
+@php
+    // $tahap = $tahap ?? 'dasar';
+    $role = Auth::user()->role;
 
+    $isAdmin = $role === 'admin';
+    $isSekretaris = $role === 'sekretaris';
+
+    $bisaPemeriksaan = $isAdmin || $isSekretaris;
+    $bisaUpload = $isAdmin || $role === 'pilar';
+
+    $buktiAda = $pertanyaan->buktiDukung->isNotEmpty();
+
+    $pemeriksaanTerakhir = $pertanyaan->pemeriksaanTerakhir;
+
+    $sudahDiperiksa = $pemeriksaanTerakhir !== null;
+
+    $pemeriksaanSesuai =
+        $sudahDiperiksa &&
+        $pemeriksaanTerakhir->status_pemeriksaan === 'sesuai';
+@endphp
 @section('content')
 
 {{-- =========================================================
@@ -175,11 +194,7 @@
                     KOLOM KIRI
                     FORM PEMERIKSAAN
                 ================================================== --}}
-                <form
-                    action="{{ route('lke.pemeriksaan.simpan', $pertanyaan->id) }}"
-                    method="POST"
-                    class="space-y-5"
-                >
+                
 
                     @csrf
 
@@ -359,9 +374,14 @@
                         </div>
 
                     </section>
+               
+            <form
+                action="{{ route('lke.pemeriksaan.simpan', $pertanyaan->id) }}"
+                method="POST"
+                class="space-y-5"
+                >
 
-
-
+                @if (in_array($tahap, ['pemeriksaan', 'penilaian', 'selesai']))
                     {{-- =================================================
                         2. STATUS PEMERIKSAAN
                     ================================================== --}}
@@ -370,8 +390,8 @@
                                bg-white shadow-sm"
                         x-data="{
                             open: false,
-                            selected: '{{ Str::title($pertanyaan->pemeriksaanTerakhir->status_pemeriksaan ?? 'sesuai') }}',
-                            value: '{{ $pertanyaan->pemeriksaanTerakhir->status_pemeriksaan ?? 'sesuai' }}'
+                            selected: '{{ Str::title($pertanyaan->pemeriksaanTerakhir->status_pemeriksaan ?? '') }}',
+                            value: '{{ $pertanyaan->pemeriksaanTerakhir->status_pemeriksaan ?? '' }}'
                         }"
                     >
 
@@ -528,19 +548,23 @@
 
 
                             {{-- Hidden value --}}
+                        @if (in_array($tahap, ['penilaian', 'selesai']))
                             <input
                                 type="hidden"
                                 name="status_pemeriksaan"
                                 :value="value"
                                 required
+                        
                             >
+                        @endif
 
                         </div>
 
                     </section>
+                @endif
 
-
-
+                @if (in_array($tahap, ['pemeriksaan', 'penilaian', 'selesai']))
+                    
                     {{-- =================================================
                         3. CATATAN PEMERIKSAAN MANDIRI
                     ================================================== --}}
@@ -572,6 +596,8 @@
 
                         <div class="p-5">
 
+                        @if ($tahap === 'pemeriksaan')
+                            @if($bisaPemeriksaan && $buktiAda)
                             <textarea
                                 rows="4"
                                 name="catatan_pemeriksaan"
@@ -584,10 +610,19 @@
                                        focus:ring-2 focus:ring-sky-100"
                                 placeholder="Tuliskan hasil pemeriksaan bukti dukung..."
                             >{{ old('catatan_pemeriksaan', $pertanyaan->pemeriksaanTerakhir->catatan_pemeriksaan ?? '') }}</textarea>
+                            @endif
 
+                        @else
+                            <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                                <p class="text-sm text-slate-600">
+                                    {{ $pertanyaan->pemeriksaanTerakhir->catatan_pemeriksaan ?? '-' }}
+                                </p>
+                            </div>
+                        @endif
                         </div>
 
                     </section>
+                @endif
 
 
 
@@ -804,6 +839,7 @@
                     </section>
 
 
+                @if (in_array($tahap, ['penilaian', 'selesai']))
 
                     {{-- =================================================
                         4. PILIH JAWABAN
@@ -841,14 +877,14 @@
 
                             <p class="mt-1 text-[10px] leading-4 text-slate-400">
                                 Pilih jawaban yang sesuai dengan hasil
-                                pemeriksaan mandiri.
+                                penilaian mandiri.
                             </p>
 
                         </div>
 
 
                         <div class="relative p-5">
-
+                        @if($bisaPemeriksaan && $buktiAda && $pemeriksaanSesuai)
 
                             {{-- Tombol Dropdown --}}
                             <button
@@ -937,22 +973,26 @@
                                 </div>
 
                             </div>
-
+                        
 
 
                             {{-- Nilai yang dikirim --}}
-                            <input
-                                type="hidden"
-                                name="jawaban"
-                                :value="value"
-                                required
-                            >
-
+                            @if (in_array($tahap, ['penilaian', 'selesai']))
+                                <input
+                                    type="hidden"
+                                    name="jawaban"
+                                    :value="value"
+                                    required
+                                >
+                            @endif
+                        @endif
                         </div>
 
                     </section>
+                @endif
 
 
+                @if (in_array($tahap, ['penilaian', 'selesai']))
 
                     {{-- =================================================
                         5. NARASI
@@ -987,7 +1027,7 @@
 
 
                         <div class="p-5">
-
+                            @if($bisaPemeriksaan && $buktiAda && $pemeriksaanSesuai)
                             <textarea
                                 rows="5"
                                 name="narasi"
@@ -1000,16 +1040,17 @@
                                        focus:ring-2 focus:ring-sky-100"
                                 placeholder="Tuliskan narasi..."
                             >{{ old('narasi', $pertanyaan->pemeriksaanTerakhir->narasi ?? '') }}</textarea>
-
+                            @endif
                         </div>
 
                     </section>
+                @endif
 
-
-
+                @if ($tahap === 'selesai')
                     {{-- =================================================
                         6. HASIL PENILAIAN MANDIRI
                     ================================================== --}}
+                    @if($pertanyaan->nilai !== null)
                     <section class="rounded-2xl border border-slate-200
                                     bg-white shadow-sm">
 
@@ -1029,7 +1070,7 @@
 
 
                             <p class="mt-1 text-[10px] text-slate-400">
-                                Nilai berdasarkan hasil pemeriksaan mandiri.
+                                Nilai berdasarkan hasil penilaian mandiri.
                             </p>
 
                         </div>
@@ -1113,15 +1154,12 @@
                         </div>
 
                     </section>
-
-
-
-                    
-
+                    @endif
+                @endif
 
 
                     {{-- =================================================
-                        8. TOMBOL AKSI
+                        7. TOMBOL AKSI
                     ================================================== --}}
                     <div class="flex flex-col-reverse gap-3
                                 sm:flex-row sm:justify-end">
@@ -1143,7 +1181,7 @@
 
                         </a>
 
-
+                    @if ($tahap === 'pemeriksaan')
                         <button
                             type="submit"
                             class="inline-flex items-center justify-center
@@ -1160,10 +1198,45 @@
                             Simpan Pemeriksaan
 
                         </button>
+                    @elseif ($tahap === 'penilaian')
+
+                        <button
+                            type="submit"
+                            class="inline-flex items-center justify-center
+                                gap-2 rounded-xl bg-sky-950 px-5 py-2.5
+                                text-xs font-semibold text-white
+                                transition hover:bg-sky-900"
+                        >
+                            <i
+                                data-lucide="save"
+                                class="h-4 w-4"
+                            ></i>
+
+                            Simpan Penilaian
+                        </button>
+
+                    @elseif ($tahap === 'selesai')
+
+                        <button
+                            type="submit"
+                            class="inline-flex items-center justify-center
+                                gap-2 rounded-xl bg-sky-950 px-5 py-2.5
+                                text-xs font-semibold text-white
+                                transition hover:bg-sky-900"
+                        >
+                            <i
+                                data-lucide="save"
+                                class="h-4 w-4"
+                            ></i>
+
+                            Perbarui Penilaian
+                        </button>
+
+                    @endif
 
                     </div>
 
-                </form>
+            </form>
                 {{-- =====================================================
                     END FORM PEMERIKSAAN KIRI
                 ====================================================== --}}
@@ -1200,7 +1273,7 @@
                             </div>
 
 
-                            <button
+                            {{-- <button
                                 type="button"
                                 class="flex rounded-full bg-emerald-50
                                        px-2.5 py-1 text-[10px] font-semibold
@@ -1215,7 +1288,7 @@
 
                                 Unduh
 
-                            </button>
+                            </button> --}}
 
                         </div>
 
@@ -1278,7 +1351,7 @@
 
 
                                         {{-- FILE SUDAH ADA --}}
-                                        @if(!empty($bukti->file))
+                                        @if(!empty($bukti->link_bukti_dukung))
 
                                             <div class="file-container">
 
@@ -1314,7 +1387,7 @@
                                                                    font-semibold
                                                                    text-slate-700"
                                                         >
-                                                            {{ $bukti->file }}
+                                                            {{ $bukti->link_bukti_dukung }}
                                                         </p>
 
                                                         <p
@@ -1334,7 +1407,7 @@
 
                                                         {{-- Lihat --}}
                                                         <a
-                                                            href="{{ $bukti->file_url ?? '#' }}"
+                                                            href="{{ asset('storage/' . $bukti->link_bukti_dukung) }}"
                                                             target="_blank"
                                                             title="Lihat"
                                                             class="inline-flex items-center
@@ -1356,7 +1429,7 @@
 
                                                         {{-- Download --}}
                                                         <a
-                                                            href="{{ $bukti->file_url ?? '#' }}"
+                                                            href="{{ route('download.bukti-dukung', $bukti->id) }}"
                                                             download
                                                             title="Download"
                                                             class="inline-flex items-center
@@ -1377,10 +1450,11 @@
 
 
                                                         {{-- Reupload --}}
+                                                        @if($bisaUpload)
                                                         <button
                                                             type="button"
                                                             title="Reupload"
-                                                            onclick="openReupload({{ $bukti->id_bukti_dukung }})"
+                                                            onclick="document.getElementById('file-{{ $bukti->id_bukti_dukung }}').click()"
                                                             class="inline-flex items-center
                                                                    justify-center rounded-md
                                                                    border border-amber-200
@@ -1390,11 +1464,13 @@
                                                         >
 
                                                             <i
-                                                                data-lucide="refresh-cw"
+                                                                data-lucide="pencil"
                                                                 class="h-3.5 w-3.5"
                                                             ></i>
+                                                            {{-- <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-refresh-cw-icon lucide-refresh-cw"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg> --}}
 
                                                         </button>
+                                                        @endif
 
                                                     </div>
 
@@ -1409,20 +1485,28 @@
                                         {{-- =================================================
                                             FORM UPLOAD / REUPLOAD
                                         ================================================== --}}
-                                        <form
+                                        <form action="{{ route('upload.bukti-dukung') }}"
+                                            method="POST"
                                             class="upload-form
-                                                {{ !empty($bukti->file) ? 'hidden' : '' }}"
+                                                {{ !empty($bukti->link_bukti_dukung) ? 'hidden' : '' }}"
                                             data-bukti-id="{{ $bukti->id_bukti_dukung }}"
                                             enctype="multipart/form-data"
                                         >
 
                                             @csrf
 
-
+                                            @if($bisaUpload)
                                             <input
                                                 type="hidden"
                                                 name="id_bukti_dukung"
                                                 value="{{ $bukti->id_bukti_dukung }}"
+                                            >
+
+                                            {{-- tentukan tahapan --}}
+                                            <input
+                                                type="hidden"
+                                                name="tahap"
+                                                value="{{ $tahap }}"
                                             >
 
 
@@ -1498,7 +1582,7 @@
                                                        text-center text-[10px]
                                                        font-medium text-red-600"
                                             ></p>
-
+                                            @endif
                                         </form>
 
                                     </div>
@@ -1552,7 +1636,7 @@
                                     $pertanyaan->buktiDukung
                                         ->filter(
                                             fn($bukti) =>
-                                                !empty($bukti->file)
+                                                !empty($bukti->link_bukti_dukung)
                                         )
                                         ->count();
 
@@ -1639,6 +1723,13 @@
 
 @endsection
 
+<script src="https://unpkg.com/lucide@latest"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        lucide.createIcons();
+    });
+</script>
 
 
 @push('scripts')
@@ -1658,480 +1749,539 @@
 
 
     async function uploadBuktiDukung(input)
-{
-    const file = input.files[0];
-
-    if (!file) {
-        return;
-    }
-
-
-    const form = input.closest('.upload-form');
-
-    if (!form) {
-
-        console.error(
-            'Form upload tidak ditemukan.'
-        );
-
-        return;
-    }
-
-
-    const slot =
-        input.closest('.bukti-slot');
-
-    if (!slot) {
-
-        console.error(
-            'Slot bukti dukung tidak ditemukan.'
-        );
-
-        return;
-    }
-
-
-    const content =
-        slot.querySelector('.bukti-content');
-
-    const label =
-        form.querySelector('.upload-label');
-
-    const uploadText =
-        form.querySelector('.upload-text');
-
-    const icon =
-        form.querySelector('.upload-icon');
-
-    const errorElement =
-        form.querySelector('.file-error');
-
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | RESET ERROR
-    |--------------------------------------------------------------------------
-    */
-
-    errorElement.textContent = '';
-
-    errorElement.classList.add('hidden');
-
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | VALIDASI PDF
-    |--------------------------------------------------------------------------
-    */
-
-    const isPdf =
-        file.type === 'application/pdf' ||
-        file.name.toLowerCase().endsWith('.pdf');
-
-
-    if (!isPdf) {
-
-        errorElement.textContent =
-            'File harus berformat PDF.';
-
-        errorElement.classList.remove('hidden');
-
-        input.value = '';
-
-        return;
-    }
-
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | VALIDASI SIZE
-    |--------------------------------------------------------------------------
-    */
-
-    const maxSize =
-        5 * 1024 * 1024;
-
-
-    if (file.size > maxSize) {
-
-        errorElement.textContent =
-            'Ukuran file maksimal 5 MB.';
-
-        errorElement.classList.remove('hidden');
-
-        input.value = '';
-
-        return;
-    }
-
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | CSRF
-    |--------------------------------------------------------------------------
-    */
-
-    const csrf =
-        document.querySelector(
-            'meta[name="csrf-token"]'
-        );
-
-
-    if (!csrf) {
-
-        console.error(
-            'CSRF token tidak ditemukan.'
-        );
-
-        tampilkanErrorUpload(
-            errorElement,
-            'CSRF token tidak ditemukan.'
-        );
-
-        return;
-    }
-
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | FORM DATA
-    |--------------------------------------------------------------------------
-    |
-    | PENTING:
-    | FormData dibuat SEBELUM input.disabled = true.
-    | Karena input disabled tidak akan ikut FormData.
-    |
-    */
-
-    const formData =
-        new FormData(form);
-
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | TAMPILKAN LOADING TERLEBIH DAHULU
-    |--------------------------------------------------------------------------
-    */
-
-    input.disabled = true;
-
-
-    label.classList.remove(
-        'cursor-pointer',
-        'hover:border-sky-300',
-        'hover:bg-sky-50'
-    );
-
-
-    label.classList.add(
-        'cursor-wait',
-        'border-sky-300',
-        'bg-sky-50'
-    );
-
-
-    uploadText.textContent =
-        'Mengupload...';
-
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | LOADING ICON
-    |--------------------------------------------------------------------------
-    */
-
-    if (icon) {
-
-        icon.setAttribute(
-            'data-lucide',
-            'loader-circle'
-        );
-
-        icon.classList.add(
-            'animate-spin'
-        );
-
-        if (typeof lucide !== 'undefined') {
-            lucide.createIcons();
+    {
+        const file = input.files[0];
+
+        if (!file) {
+            return;
         }
 
-    }
+
+        const form = input.closest('.upload-form');
+
+        if (!form) {
+
+            console.error(
+                'Form upload tidak ditemukan.'
+            );
+
+            return;
+        }
+
+
+        const slot =
+            input.closest('.bukti-slot');
+
+        if (!slot) {
+
+            console.error(
+                'Slot bukti dukung tidak ditemukan.'
+            );
+
+            return;
+        }
+
+
+        const content =
+            slot.querySelector('.bukti-content');
+
+        const label =
+            form.querySelector('.upload-label');
+
+        const uploadText =
+            form.querySelector('.upload-text');
+
+        const icon =
+            form.querySelector('.upload-icon');
+
+        const errorElement =
+            form.querySelector('.file-error');
 
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | KIRIM AJAX
-    |--------------------------------------------------------------------------
-    */
+        /*
+        |--------------------------------------------------------------------------
+        | RESET ERROR
+        |--------------------------------------------------------------------------
+        */
 
-    try {
+        errorElement.textContent = '';
 
-        const response =
-            await fetch(
-                "{{ route('bukti-dukung.upload') }}",
-                {
-                    method: 'POST',
+        errorElement.classList.add('hidden');
 
-                    headers: {
 
-                        'X-CSRF-TOKEN':
-                            csrf.getAttribute('content'),
 
-                        'Accept':
-                            'application/json',
+        /*
+        |--------------------------------------------------------------------------
+        | VALIDASI PDF
+        |--------------------------------------------------------------------------
+        */
 
-                        'X-Requested-With':
-                            'XMLHttpRequest'
+        const isPdf =
+            file.type === 'application/pdf' ||
+            file.name.toLowerCase().endsWith('.pdf');
 
-                    },
 
-                    body: formData
-                }
+        if (!isPdf) {
+
+            errorElement.textContent =
+                'File harus berformat PDF.';
+
+            errorElement.classList.remove('hidden');
+
+            input.value = '';
+
+            return;
+        }
+
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | VALIDASI SIZE
+        |--------------------------------------------------------------------------
+        */
+
+        const maxSize =
+            5 * 1024 * 1024;
+
+
+        if (file.size > maxSize) {
+
+            errorElement.textContent =
+                'Ukuran file maksimal 5 MB.';
+
+            errorElement.classList.remove('hidden');
+
+            input.value = '';
+
+            return;
+        }
+
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | CSRF
+        |--------------------------------------------------------------------------
+        */
+
+        const csrf =
+            document.querySelector(
+                'meta[name="csrf-token"]'
+            );
+
+
+        if (!csrf) {
+
+            console.error(
+                'CSRF token tidak ditemukan.'
+            );
+
+            tampilkanErrorUpload(
+                errorElement,
+                'CSRF token tidak ditemukan.'
+            );
+
+            return;
+        }
+
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | FORM DATA
+        |--------------------------------------------------------------------------
+        |
+        | PENTING:
+        | FormData dibuat SEBELUM input.disabled = true.
+        | Karena input disabled tidak akan ikut FormData.
+        |
+        */
+
+        const formData =
+            new FormData(form);
+
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | TAMPILKAN LOADING TERLEBIH DAHULU
+        |--------------------------------------------------------------------------
+        */
+
+        input.disabled = true;
+
+
+        label.classList.remove(
+            'cursor-pointer',
+            'hover:border-sky-300',
+            'hover:bg-sky-50'
+        );
+
+
+        label.classList.add(
+            'cursor-wait',
+            'border-sky-300',
+            'bg-sky-50'
+        );
+
+
+        uploadText.textContent =
+            'Mengupload...';
+
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | LOADING ICON
+        |--------------------------------------------------------------------------
+        */
+
+        if (icon) {
+
+            icon.setAttribute(
+                'data-lucide',
+                'loader-circle'
+            );
+
+            icon.classList.add(
+                'animate-spin'
+            );
+
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+
+        }
+
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | KIRIM AJAX
+        |--------------------------------------------------------------------------
+        */
+
+        try {
+
+            const response =
+                await fetch(
+                    "{{ route('bukti-dukung.upload') }}",
+                    {
+                        method: 'POST',
+
+                        headers: {
+
+                            'X-CSRF-TOKEN':
+                                csrf.getAttribute('content'),
+
+                            'Accept':
+                                'application/json',
+
+                            'X-Requested-With':
+                                'XMLHttpRequest'
+
+                        },
+
+                        body: formData
+                    }
+                );
+
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | RESPONSE
+            |--------------------------------------------------------------------------
+            */
+
+            const data =
+                await response.json();
+
+
+            console.log(
+                'Upload response:',
+                data
             );
 
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | RESPONSE
-        |--------------------------------------------------------------------------
-        */
+            /*
+            |--------------------------------------------------------------------------
+            | ERROR SERVER
+            |--------------------------------------------------------------------------
+            */
 
-        const data =
-            await response.json();
+            if (!response.ok) {
 
-
-        console.log(
-            'Upload response:',
-            data
-        );
+                let message =
+                    data.message ||
+                    'Upload gagal.';
 
 
+                if (
+                    data.errors &&
+                    data.errors.file
+                ) {
 
-        /*
-        |--------------------------------------------------------------------------
-        | ERROR SERVER
-        |--------------------------------------------------------------------------
-        */
+                    message =
+                        data.errors.file[0];
 
-        if (!response.ok) {
-
-            let message =
-                data.message ||
-                'Upload gagal.';
+                }
 
 
-            if (
-                data.errors &&
-                data.errors.file
-            ) {
+                throw new Error(message);
+            }
 
-                message =
-                    data.errors.file[0];
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | BERHASIL
+            |--------------------------------------------------------------------------
+            */
+
+            if (!data.success) {
+
+                throw new Error(
+                    data.message ||
+                    'Upload gagal.'
+                );
 
             }
 
 
-            throw new Error(message);
-        }
 
+            /*
+            |--------------------------------------------------------------------------
+            | UPDATE SLOT
+            |--------------------------------------------------------------------------
+            */
 
+            content.innerHTML = `
 
-        /*
-        |--------------------------------------------------------------------------
-        | BERHASIL
-        |--------------------------------------------------------------------------
-        */
-
-        if (!data.success) {
-
-            throw new Error(
-                data.message ||
-                'Upload gagal.'
-            );
-
-        }
-
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | UPDATE SLOT
-        |--------------------------------------------------------------------------
-        */
-
-        content.innerHTML = `
-
-            <div class="file-existing">
-
-                <div
-                    class="flex items-center gap-3
-                           rounded-lg border
-                           border-slate-200
-                           bg-white p-3"
-                >
+                <div class="file-existing">
 
                     <div
-                        class="flex h-9 w-9 shrink-0
-                               items-center justify-center
-                               rounded-lg bg-blue-50"
+                        class="flex items-center gap-3
+                            rounded-lg border
+                            border-slate-200
+                            bg-white p-3"
                     >
 
-                        <i
-                            data-lucide="file-text"
-                            class="h-4 w-4 text-blue-500"
-                        ></i>
-
-                    </div>
-
-
-                    <div class="min-w-0 flex-1">
-
-                        <p
-                            class="truncate text-xs
-                                   font-semibold
-                                   text-slate-700"
-                        >
-                            ${escapeHtml(data.file_name)}
-                        </p>
-
-                        <p
-                            class="mt-1 text-[9px]
-                                   text-emerald-600"
-                        >
-                            File berhasil diupload
-                        </p>
-
-                    </div>
-
-
-                    <div class="flex items-center gap-1">
-
-                        <a
-                            href="${data.file_url}"
-                            target="_blank"
-                            class="inline-flex items-center
-                                   justify-center rounded-md
-                                   border border-sky-200
-                                   bg-sky-50 p-1.5
-                                   text-sky-700"
+                        <div
+                            class="flex h-9 w-9 shrink-0
+                                items-center justify-center
+                                rounded-lg bg-blue-50"
                         >
 
                             <i
-                                data-lucide="eye"
-                                class="h-3.5 w-3.5"
+                                data-lucide="file-text"
+                                class="h-4 w-4 text-blue-500"
                             ></i>
 
-                        </a>
+                        </div>
 
 
-                        <a
-                            href="${data.file_url}"
-                            download
-                            class="inline-flex items-center
-                                   justify-center rounded-md
-                                   border border-emerald-200
-                                   bg-emerald-50 p-1.5
-                                   text-emerald-700"
-                        >
+                        <div class="min-w-0 flex-1">
 
-                            <i
-                                data-lucide="download"
-                                class="h-3.5 w-3.5"
-                            ></i>
+                            <p
+                                class="truncate text-xs
+                                    font-semibold
+                                    text-slate-700"
+                            >
+                                ${escapeHtml(data.file_name)}
+                            </p>
 
-                        </a>
+                            <p
+                                class="mt-1 text-[9px]
+                                    text-emerald-600"
+                            >
+                                File berhasil diupload
+                            </p>
+
+                        </div>
 
 
-                        <button
-                            type="button"
-                            onclick="document.getElementById(
-                                'file-${data.id_bukti_dukung}'
-                            ).click()"
-                            class="inline-flex items-center
-                                   justify-center rounded-md
-                                   border border-amber-200
-                                   bg-amber-50 p-1.5
-                                   text-amber-700"
-                        >
+                        <div class="flex items-center gap-1">
 
-                            <i
-                                data-lucide="pencil"
-                                class="h-3.5 w-3.5"
-                            ></i>
+                            <a
+                                href="${data.file_url}"
+                                target="_blank"
+                                class="inline-flex items-center
+                                    justify-center rounded-md
+                                    border border-sky-200
+                                    bg-sky-50 p-1.5
+                                    text-sky-700"
+                            >
 
-                        </button>
+                                <i
+                                    data-lucide="eye"
+                                    class="h-3.5 w-3.5"
+                                ></i>
+
+                            </a>
+
+
+                            <a
+                                href="${data.file_url}"
+                                download
+                                class="inline-flex items-center
+                                    justify-center rounded-md
+                                    border border-emerald-200
+                                    bg-emerald-50 p-1.5
+                                    text-emerald-700"
+                            >
+
+                                <i
+                                    data-lucide="download"
+                                    class="h-3.5 w-3.5"
+                                ></i>
+
+                            </a>
+
+
+                            <button
+                                type="button"
+                                onclick="document.getElementById(
+                                    'file-${data.id_bukti_dukung}'
+                                ).click()"
+                                class="inline-flex items-center
+                                    justify-center rounded-md
+                                    border border-amber-200
+                                    bg-amber-50 p-1.5
+                                    text-amber-700"
+                            >
+
+                                <i
+                                    data-lucide="pencil"
+                                    class="h-3.5 w-3.5"
+                                ></i>
+
+                            </button>
+
+                        </div>
 
                     </div>
 
                 </div>
 
-            </div>
-
-        `;
+            `;
 
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | SEMBUNYIKAN FORM UPLOAD
-        |--------------------------------------------------------------------------
-        */
+            /*
+            |--------------------------------------------------------------------------
+            | SEMBUNYIKAN FORM UPLOAD
+            |--------------------------------------------------------------------------
+            */
 
-        form.classList.add('hidden');
-
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | UPDATE PROGRESS
-        |--------------------------------------------------------------------------
-        */
-
-        updateProgress();
+            form.classList.add('hidden');
 
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | REFRESH ICON
-        |--------------------------------------------------------------------------
-        */
+            /*
+            |--------------------------------------------------------------------------
+            | UPDATE PROGRESS
+            |--------------------------------------------------------------------------
+            */
 
-        if (typeof lucide !== 'undefined') {
-            lucide.createIcons();
+            updateProgress();
+
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | REFRESH ICON
+            |--------------------------------------------------------------------------
+            */
+
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+
+
+        } catch (error) {
+
+            console.error(
+                'Upload error:',
+                error
+            );
+
+
+            tampilkanErrorUpload(
+                errorElement,
+                error.message ||
+                'Terjadi kesalahan saat upload.'
+            );
+
+
+            resetUpload(
+                input,
+                label,
+                uploadText,
+                icon
+            );
+
         }
 
+    }
 
-    } catch (error) {
+    function updateProgress() {
 
-        console.error(
-            'Upload error:',
-            error
-        );
+    const slots = document.querySelectorAll('.bukti-slot');
+
+    const totalBukti = slots.length;
+
+    let totalTerpenuhi = 0;
+
+    slots.forEach(slot => {
+
+        const fileExisting =
+            slot.querySelector('.file-existing');
+
+        if (fileExisting) {
+            totalTerpenuhi++;
+        }
+
+    });
+
+    const persentase =
+        totalBukti > 0
+            ? (totalTerpenuhi / totalBukti) * 100
+            : 0;
+
+    const progressText =
+        document.getElementById('progress-text');
+
+    const progressBar =
+        document.getElementById('progress-bar');
+
+    const progressPercentage =
+        document.getElementById('progress-percentage');
 
 
-        tampilkanErrorUpload(
-            errorElement,
-            error.message ||
-            'Terjadi kesalahan saat upload.'
-        );
+    if (progressText) {
+
+        progressText.textContent =
+            `${totalTerpenuhi} dari ${totalBukti} file`;
+
+    }
 
 
-        resetUpload(
-            input,
-            label,
-            uploadText,
-            icon
-        );
+    if (progressBar) {
+
+        progressBar.style.width =
+            `${persentase}%`;
+
+    }
+
+
+    if (progressPercentage) {
+
+        progressPercentage.textContent =
+            `${persentase.toFixed(2)}%`;
 
     }
 

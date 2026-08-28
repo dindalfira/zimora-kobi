@@ -323,7 +323,7 @@
                                     </p>
 
                                     <p class="mt-1 text-xs text-slate-500">
-                                        Bukti Dukung Dalam Pemeriksaan
+                                        Bukti Dukung Diperiksa
                                     </p>
                                 </div>
 
@@ -617,17 +617,17 @@
                 ],
 
                 datasets: [{
-                    data: [20, 15, 50, 15],
+                    data: @json($statusKegChart),
 
                     backgroundColor: [
                         '#BFC6C4', // Menunggu
-                        '#f59e0b', // Berlangsung
+                        '#67BED9', // Berlangsung
                         '#10b981', // Selesai
                         '#ef4444'  // Terlambat
                     ],
 
                     borderWidth: 0
-                }]
+                }],
 
             },
 
@@ -844,7 +844,7 @@
 
             data: {
 
-                labels: @json($pilars),
+                labels: @json($namapilars),
 
                 datasets: [
 
@@ -1047,7 +1047,7 @@
 
             data: {
 
-                labels: @json($pilars),
+                labels: @json($namapilars),
 
                 datasets: [{
 

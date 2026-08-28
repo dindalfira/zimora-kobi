@@ -23,6 +23,7 @@ return new class extends Migration
                 ->default('belum');
 
             $table->string('link_bukti_dukung')->nullable();
+            $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
 
 
             $table->timestamps();

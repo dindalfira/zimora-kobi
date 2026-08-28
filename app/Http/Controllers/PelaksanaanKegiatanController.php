@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Kegiatan;
 use App\Models\PelaksanaanKegiatan;
+use App\Models\PertanyaanLKE;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
@@ -14,6 +15,14 @@ class PelaksanaanKegiatanController extends Controller
      */
     public function index(Kegiatan $kegiatan)
     {
+        $kegiatan->load([
+            'pertanyaan',
+            'pertanyaan.subpilar',
+        ]);
+
+        // Pastikan data pelaksanaan sudah dibuat
+        $this->generatePelaksanaanData($kegiatan);
+
         $pelaksanaan = $kegiatan->pelaksanaan()
             ->orderBy('periode_ke', 'asc')
             ->get();
@@ -24,20 +33,12 @@ class PelaksanaanKegiatanController extends Controller
         );
     }
 
-
-    /**
-     * Membuat pelaksanaan berdasarkan
-     * jumlah_pelaksanaan.
-     */
-    public function generatePelaksanaan(Kegiatan $kegiatan)
+    private function generatePelaksanaanData(Kegiatan $kegiatan)
     {
         $jumlah = (int) $kegiatan->jumlah_pelaksanaan;
 
         if ($jumlah < 1) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Jumlah pelaksanaan tidak valid.',
-            ], 422);
+            return;
         }
 
         for ($i = 1; $i <= $jumlah; $i++) {
@@ -64,12 +65,72 @@ class PelaksanaanKegiatanController extends Controller
 
             $pelaksanaan->save();
         }
+    }
+
+    /**
+     * Membuat pelaksanaan berdasarkan
+     * jumlah_pelaksanaan.
+     */
+    public function generatePelaksanaan(Kegiatan $kegiatan)
+    {
+        $jumlah = (int) $kegiatan->jumlah_pelaksanaan;
+
+        if ($jumlah < 1) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Jumlah pelaksanaan tidak valid.',
+            ], 422);
+        }
+
+        $this->generatePelaksanaanData($kegiatan);
 
         return response()->json([
             'success' => true,
             'message' => 'Pelaksanaan kegiatan berhasil dibuat.',
         ]);
     }
+
+    // public function generatePelaksanaan(Kegiatan $kegiatan)
+    // {
+    //     $jumlah = (int) $kegiatan->jumlah_pelaksanaan;
+
+    //     if ($jumlah < 1) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Jumlah pelaksanaan tidak valid.',
+    //         ], 422);
+    //     }
+
+    //     for ($i = 1; $i <= $jumlah; $i++) {
+
+    //         $waktuPelaksanaan = $this->hitungWaktuPelaksanaan(
+    //             $kegiatan,
+    //             $i
+    //         );
+
+    //         $pelaksanaan = PelaksanaanKegiatan::firstOrCreate(
+    //             [
+    //                 'kegiatan_id' => $kegiatan->id,
+    //                 'periode_ke' => $i,
+    //             ],
+    //             [
+    //                 'waktu_pelaksanaan' => $waktuPelaksanaan,
+    //                 'dokumentasi' => null,
+    //                 'status_pelaksanaan' => 'menunggu',
+    //             ]
+    //         );
+
+    //         $pelaksanaan->status_pelaksanaan =
+    //             $pelaksanaan->tentukanStatusPelaksanaan();
+
+    //         $pelaksanaan->save();
+    //     }
+
+    //     return response()->json([
+    //         'success' => true,
+    //         'message' => 'Pelaksanaan kegiatan berhasil dibuat.',
+    //     ]);
+    // }
 
 
     /**
@@ -152,19 +213,8 @@ class PelaksanaanKegiatanController extends Controller
             'waktu_pelaksanaan' => [
                 'required',
                 'date',
-                'after:today',
             ],
-        ], [
-            'waktu_pelaksanaan.required' =>
-                'Tanggal pelaksanaan wajib diisi.',
-
-            'waktu_pelaksanaan.date' =>
-                'Format tanggal tidak valid.',
-
-            'waktu_pelaksanaan.after' =>
-                'Tanggal pelaksanaan harus setelah hari ini.',
-        ]
-        );
+        ]);
 
         $pelaksanaanKegiatan->waktu_pelaksanaan =
             $validated['waktu_pelaksanaan'];
@@ -176,9 +226,10 @@ class PelaksanaanKegiatanController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Waktu pelaksanaan berhasil diperbarui.',
+            'message' => 'Tanggal pelaksanaan berhasil diperbarui.',
         ]);
     }
+
 
 
     /**
@@ -188,28 +239,56 @@ class PelaksanaanKegiatanController extends Controller
      * Upload Google Drive bisa kita integrasikan
      * pada tahap berikutnya.
      */
+    // public function updateDokumentasi(
+    //     Request $request,
+    //     PelaksanaanKegiatan $pelaksanaanKegiatan
+    // ) {
+    //     $validated = $request->validate([
+    //         'dokumentasi' => [
+    //             'nullable',
+    //             'string',
+    //         ],
+    //     ]);
+
+    //     $pelaksanaanKegiatan->dokumentasi =
+    //         $validated['dokumentasi'];
+
+    //     $pelaksanaanKegiatan->status_pelaksanaan =
+    //         $pelaksanaanKegiatan->tentukanStatusPelaksanaan();
+
+    //     $pelaksanaanKegiatan->save();
+
+    //     return response()->json([
+    //         'success' => true,
+    //         'message' => 'Dokumentasi berhasil diperbarui.',
+    //     ]);
+    // }
+
     public function updateDokumentasi(
         Request $request,
         PelaksanaanKegiatan $pelaksanaanKegiatan
     ) {
         $validated = $request->validate([
             'dokumentasi' => [
-                'nullable',
-                'string',
+                'required',
+                'file',
+                'mimes:pdf,jpg,jpeg,png,webp',
+                'max:5120',
             ],
         ]);
 
-        $pelaksanaanKegiatan->dokumentasi =
-            $validated['dokumentasi'];
+        $file = $validated['dokumentasi'];
 
-        $pelaksanaanKegiatan->status_pelaksanaan =
-            $pelaksanaanKegiatan->tentukanStatusPelaksanaan();
+        // Upload $file ke Google Drive
+        // kemudian ambil URL Google Drive
 
-        $pelaksanaanKegiatan->save();
+        // contoh:
+        // $url = $googleDriveService->upload($file);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Dokumentasi berhasil diperbarui.',
-        ]);
+        // $pelaksanaanKegiatan->dokumentasi = $url;
+
+        // $pelaksanaanKegiatan->save();
+
+        // ...
     }
 }

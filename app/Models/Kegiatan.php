@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
 
 use App\Models\PelaksanaanKegiatan;
+use App\Models\PertanyaanLKE;
 
 class Kegiatan extends Model
 {
@@ -31,56 +32,176 @@ class Kegiatan extends Model
     // relasi ke tabel pelaksanaan_kegiatan
     public function pelaksanaan()
     {
-        return $this->hasMany(PelaksanaanKegiatan::class);
+        return $this->hasMany(PelaksanaanKegiatan::class, 'kegiatan_id');
     }
 
     // status kegiatan
     public function getStatusAktualAttribute()
     {
+        $pelaksanaan = $this->pelaksanaan;
+
+        // Tidak ada pelaksanaan
+        if ($pelaksanaan->isEmpty()) {
+            return 'menunggu';
+        }
+
+        $hariIni = Carbon::today();
+
+        $adaTerlambat = false;
+        $adaBerlangsung = false;
+        $adaMenunggu = false;
+        $adaBelumSelesai = false;
+
+
         // ==========================================
-        // 1. SUDAH UPLOAD DOKUMENTASI
+        // CEK SETIAP PELAKSANAAN
         // ==========================================
-        if (!empty($this->dokumentasi_kegiatan)) {
+
+        foreach ($pelaksanaan as $item) {
+
+            // --------------------------------------
+            // SUDAH SELESAI
+            // --------------------------------------
+
+            if (!empty($item->dokumentasi)) {
+                continue;
+            }
+
+            $adaBelumSelesai = true;
+
+
+            // --------------------------------------
+            // TANGGAL KOSONG
+            // --------------------------------------
+
+            if (empty($item->waktu_pelaksanaan)) {
+                $adaMenunggu = true;
+                continue;
+            }
+
+
+            $tanggal = Carbon::parse(
+                $item->waktu_pelaksanaan
+            );
+
+
+            // ==========================================
+            // TAHUN LEBIH BESAR
+            // ==========================================
+
+            if ($tanggal->year > $hariIni->year) {
+
+                $adaMenunggu = true;
+
+                continue;
+            }
+
+
+            // ==========================================
+            // TAHUN LEBIH KECIL
+            // ==========================================
+
+            if ($tanggal->year < $hariIni->year) {
+
+                $adaTerlambat = true;
+
+                continue;
+            }
+
+
+            // ==========================================
+            // TAHUN SAMA
+            // BANDINKAN BULAN
+            // ==========================================
+
+            if ($tanggal->month > $hariIni->month) {
+
+                // Bulan berikutnya
+                $adaMenunggu = true;
+
+                continue;
+            }
+
+
+            if ($tanggal->month === $hariIni->month) {
+
+                // Bulan sekarang
+                $adaBerlangsung = true;
+
+                continue;
+            }
+
+
+            // ==========================================
+            // BULAN SUDAH LEWAT
+            // ==========================================
+
+            if ($tanggal->month < $hariIni->month) {
+
+                $adaTerlambat = true;
+
+                continue;
+            }
+        }
+
+
+        // ==========================================
+        // SEMUA SUDAH SELESAI
+        // ==========================================
+
+        if (!$adaBelumSelesai) {
             return 'selesai';
         }
 
+
         // ==========================================
-        // 2. TANGGAL KEGIATAN KOSONG
+        // KEGIATAN BERULANG
         // ==========================================
-        if (!$this->waktu_pemenuhan) {
+
+        if ($this->jumlah_pelaksanaan > 1) {
+
+            // Ada minimal satu periode yang
+            // bulannya sudah lewat
+            if ($adaTerlambat) {
+                return 'tindak_lanjut';
+            }
+
+            // Ada periode di bulan sekarang
+            if ($adaBerlangsung) {
+                return 'berlangsung';
+            }
+
+            // Semua periode berikutnya
+            // masih belum masuk bulannya
+            if ($adaMenunggu) {
+                return 'menunggu';
+            }
+
             return 'menunggu';
         }
 
-        $tanggalKegiatan = Carbon::parse($this->waktu_pemenuhan);
-        $hariIni = Carbon::today();
 
         // ==========================================
-        // 3. TAHUN KEGIATAN MASIH DI MASA DEPAN
+        // KEGIATAN TIDAK BERULANG
         // ==========================================
-        if ($tanggalKegiatan->year > $hariIni->year) {
-            return 'menunggu';
-        }
 
-        // ==========================================
-        // 4. TAHUN KEGIATAN SUDAH LEWAT
-        // ==========================================
-        if ($tanggalKegiatan->year < $hariIni->year) {
+        if ($adaTerlambat) {
             return 'terlambat';
         }
 
-        // ==========================================
-        // 5. TAHUN SAMA → BANDINGKAN BULAN
-        // ==========================================
-
-        if ($tanggalKegiatan->month > $hariIni->month) {
-            return 'menunggu';
-        }
-
-        if ($tanggalKegiatan->month === $hariIni->month) {
+        if ($adaBerlangsung) {
             return 'berlangsung';
         }
 
-        // Bulan kegiatan sudah lewat
-        return 'terlambat';
+        return 'menunggu';
+    }
+
+    public function pertanyaan()
+    {
+        return $this->belongsTo(
+            PertanyaanLKE::class,
+            'kode_pertanyaan',
+            'id_pertanyaan'
+        );
     }
 }

@@ -81,26 +81,23 @@
 
         {{-- Nama hari --}}
         <div class="grid grid-cols-7 border-b border-slate-200 bg-slate-50">
-
             <template x-for="day in days" :key="day">
                 <div
                     class="border-r border-slate-200 px-2 py-3 text-center text-[11px]
-                           font-semibold tracking-wide text-slate-500 last:border-r-0"
+                        font-semibold tracking-wide text-slate-500 last:border-r-0"
                     x-text="day"
                 ></div>
             </template>
-
         </div>
 
-
         {{-- Tanggal --}}
-        <div class="grid grid-cols-7 grid-rows-6 h-full ">
+        <div class="grid h-[720px] grid-cols-7 grid-rows-6">
 
             <template x-for="date in calendarDays" :key="date.key">
 
                 <div
-                    class="relative border-b border-r border-slate-200 p-2
-                           transition hover:bg-slate-50"
+                    class="relative min-h-0 overflow-hidden border-b border-r border-slate-200 p-2
+                        transition hover:bg-slate-50"
                     :class="{
                         'bg-slate-50/70': !date.currentMonth,
                         'bg-sky-50/40': date.today
@@ -108,11 +105,11 @@
                 >
 
                     {{-- Nomor tanggal --}}
-                    <div class="mb-2 flex items-center justify-between">
+                    <div class="mb-1.5 flex items-center justify-between">
 
                         <span
-                            class="flex h-7 w-7 items-center justify-center rounded-full
-                                   text-xs font-medium"
+                            class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full
+                                text-xs font-medium"
                             :class="{
                                 'text-slate-400': !date.currentMonth,
                                 'text-slate-700': date.currentMonth && !date.today,
@@ -123,56 +120,54 @@
 
                     </div>
 
+                    {{-- Daftar kegiatan --}}
+                    <div class="max-h-20.5 space-y-1 overflow-y-auto pr-1">
 
-                    {{-- Kegiatan --}}
-                    <div class="space-y-1">
-
-                        <template x-for="activity in getActivities(date.date)" :key="activity.id">
+                        <template
+                            x-for="activity in getActivities(date.date)"
+                            :key="activity.id"
+                        >
 
                             <a
                                 :href="activity.url"
-                                class="block rounded-lg border-l-4 px-2 py-1.5 transition hover:shadow-sm"
-                                :class="{
-                                    'border-emerald-500 bg-emerald-50': activity.status === 'selesai',
-                                    'border-blue-500 bg-blue-50': activity.status === 'berlangsung',
-                                    'border-red-500 bg-rose-50': activity.status === 'terlambat',
-                                    'border-slate-500 bg-slate-50': activity.status === 'menunggu'
-                                }"
+                                class="group block rounded-md px-1 py-0.5 transition hover:shadow-sm"
+                                :title="activity.name"
                             >
 
-                            <div
-                                class="truncate text-[11px] font-semibold"
-                                :class="{
-                                    'text-emerald-800': activity.status === 'selesai',
-                                    'text-blue-800': activity.status === 'berlangsung',
-                                    'text-red-800': activity.status === 'terlambat',
-                                    'text-slate-800': activity.status === 'menunggu'
-                                }"
-                                x-text="activity.name"
-                            ></div>
+                                <div
+                                    class="flex items-start gap-1 text-[10px] leading-tight font-medium"
+                                    :class="{
+                                        'text-emerald-800': activity.status === 'selesai',
+                                        'text-blue-800': activity.status === 'berlangsung',
+                                        'text-red-800': activity.status === 'terlambat',
+                                        'text-slate-700': activity.status === 'menunggu'
+                                    }"
+                                >
 
-                            <div class="mt-0.5 truncate text-[10px] text-slate-500">
-                                <span>Pilar </span>
-                                <span x-text="activity.pillar"></span>
-                            </div>
+                                    {{-- Bullet --}}
+                                    <span class="shrink-0">•</span>
 
-                                                            
-
-                                                        </a>
-
-                                                    </template>
-
-                                                </div>
-
-                                            </div>
-
-                                        </template>
-
-                                    </div>
+                                    {{-- Nama kegiatan --}}
+                                    <span
+                                        class="line-clamp-2 min-w-0 wrap-break-word "
+                                        x-text="activity.name"
+                                    ></span>
 
                                 </div>
 
-                        </div>
+                            </a>
+
+                        </template>
+
+                    </div>
+
+                </div>
+
+            </template>
+
+        </div>
+
+    </div>
 
 
 <script>
@@ -194,17 +189,25 @@ function calendarApp() {
             'MIN'
         ],
 
-        activities: {{ Js::from(
-            $pelaksanaan->map(function ($item) {
-                return [
-                    'id' => $item->id,
-                    'name' => $item->kegiatan->nama_kegiatan,
-                    'date' => \Carbon\Carbon::parse($item->waktu_pelaksanaan)->format('Y-m-d'),
-                    'status' => $item->status_pelaksanaan,
-                    'pillar' => $item->kegiatan->pilar ?? '',
-                ];
-            })
-        ) }},
+activities: {{ Js::from(
+    $pelaksanaan->map(function ($item) {
+        return [
+            'id' => $item->id,
+            'name' => $item->kegiatan->nama_kegiatan ?? '-',
+
+            'date' => $item->waktu_pelaksanaan
+                ? \Carbon\Carbon::parse($item->waktu_pelaksanaan)->format('Y-m-d')
+                : null,
+
+            'status' => strtolower($item->status_pelaksanaan ?? 'menunggu'),
+
+            'url' => route(
+                'kegiatan.detail',
+                $item->kegiatan_id
+            ),
+        ];
+    })
+) }},
 
         get currentYear() {
             return this.currentDate.getFullYear();
