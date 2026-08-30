@@ -1,8 +1,8 @@
 @extends('layouts.app')
-
 @section('title', 'LKE')
+
 @php
-    // $tahap = $tahap ?? 'dasar';
+    // $tahap = 'selesai';
     $role = Auth::user()->role;
 
     $isAdmin = $role === 'admin';
@@ -10,6 +10,7 @@
 
     $bisaPemeriksaan = $isAdmin || $isSekretaris;
     $bisaUpload = $isAdmin || $role === 'pilar';
+    $bisaMelihat = $role === 'pilar'|| $role === 'bps';
 
     $buktiAda = $pertanyaan->buktiDukung->isNotEmpty();
 
@@ -20,13 +21,27 @@
     $pemeriksaanSesuai =
         $sudahDiperiksa &&
         $pemeriksaanTerakhir->status_pemeriksaan === 'sesuai';
+
+    $statusPemeriksaan =
+        $pemeriksaanTerakhir->status_pemeriksaan ?? '-';
+
+    $catatanPemeriksaan =
+        $pemeriksaanTerakhir->catatan_pemeriksaan ?? '-';
+
+    $jawabanTerakhir =
+        $pemeriksaanTerakhir->jawaban ?? '-';
+
+    $narasiTerakhir =
+        $pemeriksaanTerakhir->narasi ?? '-';
+
 @endphp
+
 @section('content')
 
 {{-- =========================================================
     BREADCRUMB
 ========================================================= --}}
-<div class="mb-4 flex items-center gap-1 text-[10px] text-slate-400">
+<div class="mb-2 flex items-center gap-1 text-[10px] text-slate-400">
 
     <a href="{{ route('lke') }}"
         class="transition hover:text-sky-700">
@@ -45,7 +60,7 @@
 {{-- =========================================================
     MAIN WRAPPER
 ========================================================= --}}
-<div class="rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+<div class="rounded-xl border border-slate-200 shadow-sm">
 
     <div class="min-h-screen bg-slate-50">
 
@@ -55,7 +70,7 @@
         ====================================================== --}}
         <div class="border-b border-slate-200 bg-white">
 
-            <div class="mx-auto max-w-[1600px] px-2 py-2 sm:px-6 lg:px-8">
+            <div class="mx-auto max-w-[1600px] px-3 py-2 pb-3 sm:px-6">
 
                 {{-- Judul indikator --}}
                 <div>
@@ -171,7 +186,7 @@
 
 
                     <h1 class="mt-2 text-md font-bold leading-5 text-sky-950 sm:text-base">
-                        {{ $pertanyaan->nama_pertanyaan }}
+                        {{ Str::title($pertanyaan->nama_pertanyaan) }}
                     </h1>
 
                 </div>
@@ -185,7 +200,7 @@
         {{-- =====================================================
             MAIN CONTENT
         ====================================================== --}}
-        <div class="mx-auto max-w-[1600px] px-4 py-5 sm:px-6 lg:px-8">
+        <div class="mx-auto max-w-[1600px] px-2 py-5 sm:px-6">
 
             <div class="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_430px]">
 
@@ -194,9 +209,18 @@
                     KOLOM KIRI
                     FORM PEMERIKSAAN
                 ================================================== --}}
+                <form
+                    action="{{ route('lke.pemeriksaan.simpan', $pertanyaan->id_pertanyaan) }}"
+                    method="POST"
+                    class="space-y-5">
                 
+                @csrf
 
-                    @csrf
+                <input
+                    type="hidden"
+                    name="tahap"
+                    value="{{ $tahap }}"
+                >
 
 
                     {{-- =================================================
@@ -361,7 +385,7 @@
                                         <i data-lucide="external-link"
                                             class="mt-0.5 h-3.5 w-3.5 shrink-0"></i>
 
-                                        <span>
+                                        <span class="min-w-0 break-all">
                                             {{ $pertanyaan->link_pedoman }}
                                         </span>
 
@@ -375,261 +399,433 @@
 
                     </section>
                
-            <form
-                action="{{ route('lke.pemeriksaan.simpan', $pertanyaan->id) }}"
-                method="POST"
-                class="space-y-5"
-                >
+            
 
-                @if (in_array($tahap, ['pemeriksaan', 'penilaian', 'selesai']))
-                    {{-- =================================================
-                        2. STATUS PEMERIKSAAN
-                    ================================================== --}}
-                    <section
-                        class="rounded-2xl border border-slate-200
-                               bg-white shadow-sm"
-                        x-data="{
-                            open: false,
-                            selected: '{{ Str::title($pertanyaan->pemeriksaanTerakhir->status_pemeriksaan ?? '') }}',
-                            value: '{{ $pertanyaan->pemeriksaanTerakhir->status_pemeriksaan ?? '' }}'
-                        }"
-                    >
+                    @if (in_array($tahap, ['pemeriksaan', 'penilaian', 'selesai']))
+                        {{-- =================================================
+                            2. STATUS PEMERIKSAAN
+                        ================================================== --}}
+                        <section
+                            class="rounded-2xl border border-slate-200
+                                bg-white shadow-sm"
+                            x-data="{
+                                open: false,
+                                selected: '{{ Str::title($statusPemeriksaan ?? '') }}',
+                                value: '{{ $statusPemeriksaan ?? '' }}'
+                            }"
+                        >
 
-                        <div class="px-5 pt-5">
+                            <div class="px-5 pt-5">
 
-                            <div class="flex items-center gap-2">
+                                <div class="flex items-center gap-2">
 
-                                <i data-lucide="shapes"
-                                    class="h-4 w-4 text-sky-600"></i>
+                                    <i data-lucide="shapes"
+                                        class="h-4 w-4 text-sky-600"></i>
 
-                                <h2 class="text-xs font-bold uppercase
-                                           tracking-wide text-slate-600">
+                                    <h2 class="text-xs font-bold uppercase
+                                            tracking-wide text-slate-600">
 
-                                    Status Pemeriksaan
+                                        Status Pemeriksaan
 
-                                    <span class="text-red-500">*</span>
+                                        @if($bisaPemeriksaan)<span class="text-red-500">*</span>@endif
 
-                                </h2>
+                                    </h2>
+
+                                </div>
+
+                                
+                                <p class="mt-1 text-[10px] leading-4 text-slate-400">
+                                    @if($bisaPemeriksaan)
+                                        Tentukan status berdasarkan hasil pemeriksaan
+                                        mandiri terhadap bukti dukung.
+                                    @else
+                                        Status berdasarkan hasil pemeriksaan
+                                        mandiri terhadap bukti dukung.
+                                    @endif
+                                </p>
+                                
 
                             </div>
 
 
-                            <p class="mt-1 text-[10px] leading-4 text-slate-400">
-                                Tentukan status berdasarkan hasil pemeriksaan
-                                mandiri terhadap bukti dukung.
-                            </p>
-
-                        </div>
-
-
-                        <div class="relative p-5">
-
-
-                            {{-- Tombol Dropdown --}}
-                            <button
-                                type="button"
-                                @click="open = !open"
-                                @click.outside="open = false"
-                                class="flex w-full items-center justify-between
-                                       rounded-xl border border-slate-200
-                                       bg-white px-4 py-3 text-left text-sm
-                                       text-slate-700 outline-none transition
-                                       hover:border-slate-300
-                                       focus:border-sky-500
-                                       focus:ring-2 focus:ring-sky-100"
-                            >
-
-                                <span
-                                    class="truncate"
-                                    x-text="selected">
-                                </span>
-
-
-                                <i
-                                    data-lucide="chevron-down"
-                                    class="ml-3 h-4 w-4 shrink-0 text-slate-400
-                                           transition-transform duration-200"
-                                    :class="{ 'rotate-180': open }">
-                                </i>
-
-                            </button>
+                            <div class="relative p-5">
+                            @if($bisaPemeriksaan && $buktiAda && $tahap === 'pemeriksaan')
 
 
 
-                            {{-- Dropdown --}}
-                            <div
-                                x-show="open"
-                                x-transition
-                                class="absolute left-5 right-5
-                                       top-[calc(100%-1rem)] z-30 mt-1
-                                       overflow-hidden rounded-xl border
-                                       border-slate-200 bg-white shadow-lg"
-                                style="display: none;"
-                            >
-
-
-                                {{-- SESUAI --}}
+                                {{-- Tombol Dropdown --}}
                                 <button
                                     type="button"
-                                    @click="
-                                        selected = 'Sesuai';
-                                        value = 'sesuai';
-                                        open = false;
-                                    "
-                                    class="w-full px-4 py-3 text-left
-                                           text-xs leading-5 text-slate-700
-                                           transition hover:bg-emerald-50
-                                           hover:text-emerald-700"
+                                    @click="open = !open"
+                                    @click.outside="open = false"
+                                    class="flex w-full items-center justify-between
+                                        rounded-xl border border-slate-200
+                                        bg-white px-4 py-3 text-left text-sm
+                                        text-slate-700 outline-none transition
+                                        hover:border-slate-300
+                                        focus:border-sky-500
+                                        focus:ring-2 focus:ring-sky-100"
                                 >
 
-                                    <div class="flex items-start gap-3">
-
-                                        <div class="mt-0.5 flex h-5 w-5 shrink-0
-                                                    items-center justify-center
-                                                    rounded-full bg-emerald-50">
-
-                                            <i data-lucide="check"
-                                                class="h-3 w-3 text-emerald-600"></i>
-
-                                        </div>
+                                    <span
+                                        class="truncate"
+                                        x-text="selected">
+                                    </span>
 
 
-                                        <div>
-                                            <p class="font-medium">
-                                                Sesuai
-                                            </p>
-                                        </div>
-
-                                    </div>
+                                    <i
+                                        data-lucide="chevron-down"
+                                        class="ml-3 h-4 w-4 shrink-0 text-slate-400
+                                            transition-transform duration-200"
+                                        :class="{ 'rotate-180': open }">
+                                    </i>
 
                                 </button>
 
 
 
-                                {{-- PERBAIKAN --}}
-                                <button
-                                    type="button"
-                                    @click="
-                                        selected = 'Perbaikan';
-                                        value = 'perbaikan';
-                                        open = false;
-                                    "
-                                    class="w-full border-t border-slate-100
-                                           px-4 py-3 text-left text-xs
-                                           leading-5 text-slate-700
-                                           transition hover:bg-amber-50
-                                           hover:text-amber-700"
+                                {{-- Dropdown --}}
+                                <div
+                                    x-show="open"
+                                    x-transition
+                                    class="absolute left-5 right-5
+                                        top-[calc(100%-1rem)] z-30 mt-1
+                                        overflow-hidden rounded-xl border
+                                        border-slate-200 bg-white shadow-lg"
+                                    style="display: none;"
                                 >
 
-                                    <div class="flex items-start gap-3">
 
-                                        <div class="mt-0.5 flex h-5 w-5 shrink-0
-                                                    items-center justify-center
-                                                    rounded-full bg-amber-50">
+                                    {{-- SESUAI --}}
+                                    <button
+                                        type="button"
+                                        @click="
+                                            selected = 'Sesuai';
+                                            value = 'sesuai';
+                                            open = false;
+                                        "
+                                        class="w-full px-4 py-3 text-left
+                                            text-xs leading-5 text-slate-700
+                                            transition hover:bg-emerald-50
+                                            hover:text-emerald-700"
+                                    >
 
-                                            <i data-lucide="alert-triangle"
-                                                class="h-3 w-3 text-amber-600"></i>
+                                        <div class="flex items-start gap-3">
+
+                                            <div class="mt-0.5 flex h-5 w-5 shrink-0
+                                                        items-center justify-center
+                                                        rounded-full bg-emerald-50">
+
+                                                <i data-lucide="check"
+                                                    class="h-3 w-3 text-emerald-600"></i>
+
+                                            </div>
+
+
+                                            <div>
+                                                <p class="font-medium">
+                                                    Sesuai
+                                                </p>
+                                            </div>
 
                                         </div>
 
+                                    </button>
 
-                                        <div>
-                                            <p class="font-medium">
-                                                Perbaikan
-                                            </p>
+
+
+                                    {{-- PERBAIKAN --}}
+                                    <button
+                                        type="button"
+                                        @click="
+                                            selected = 'Perbaikan';
+                                            value = 'perbaikan';
+                                            open = false;
+                                        "
+                                        class="w-full border-t border-slate-100
+                                            px-4 py-3 text-left text-xs
+                                            leading-5 text-slate-700
+                                            transition hover:bg-amber-50
+                                            hover:text-amber-700"
+                                    >
+
+                                        <div class="flex items-start gap-3">
+
+                                            <div class="mt-0.5 flex h-5 w-5 shrink-0
+                                                        items-center justify-center
+                                                        rounded-full bg-amber-50">
+
+                                                <i data-lucide="alert-triangle"
+                                                    class="h-3 w-3 text-amber-600"></i>
+
+                                            </div>
+
+
+                                            <div>
+                                                <p class="font-medium">
+                                                    Perbaikan
+                                                </p>
+                                            </div>
+
                                         </div>
 
-                                    </div>
+                                    </button>
 
-                                </button>
-
-                            </div>
+                                </div>
 
 
 
-                            {{-- Hidden value --}}
-                        @if (in_array($tahap, ['penilaian', 'selesai']))
-                            <input
-                                type="hidden"
-                                name="status_pemeriksaan"
-                                :value="value"
-                                required
-                        
-                            >
-                        @endif
+                                {{-- Hidden value --}}
+                                <input
+                                    type="hidden"
+                                    name="status_pemeriksaan"
+                                    :value="value"
+                                    required
+                            
+                                >
+                            
+                            @else
 
-                        </div>
+                                {{-- USER YANG HANYA BOLEH MELIHAT --}}
+                                <div
+                                    class="flex w-full items-center justify-between
+                                        rounded-xl border border-slate-200
+                                        bg-slate-50 px-4 py-3 text-left text-sm
+                                        text-slate-700"
+                                >
+                                    <span class="truncate">
+                                        {{ $statusPemeriksaan
+                                            ? ucfirst($statusPemeriksaan)
+                                            : '-' }}
+                                    </span>
 
-                    </section>
-                @endif
+                                    <i
+                                        data-lucide="chevron-down"
+                                        class="ml-3 h-4 w-4 shrink-0 text-slate-300"
+                                    ></i>
+                                </div>
 
-                @if (in_array($tahap, ['pemeriksaan', 'penilaian', 'selesai']))
-                    
-                    {{-- =================================================
-                        3. CATATAN PEMERIKSAAN MANDIRI
-                    ================================================== --}}
-                    <section class="rounded-2xl border border-slate-200
-                                    bg-white shadow-sm">
-
-                        <div class="px-5 pt-5">
-
-                            <div class="flex items-center gap-2">
-
-                                <i data-lucide="clipboard-check"
-                                    class="h-4 w-4 text-sky-600"></i>
-
-                                <h2 class="text-xs font-bold uppercase
-                                           tracking-wide text-slate-600">
-                                    Catatan Pemeriksaan Mandiri
-                                </h2>
-
-                            </div>
-
-
-                            <p class="mt-1 text-[10px] leading-4 text-slate-400">
-                                Catatan hasil pemeriksaan bukti dukung sebelum
-                                dilakukan penilaian.
-                            </p>
-
-                        </div>
-
-
-                        <div class="p-5">
-
-                        @if ($tahap === 'pemeriksaan')
-                            @if($bisaPemeriksaan && $buktiAda)
-                            <textarea
-                                rows="4"
-                                name="catatan_pemeriksaan"
-                                class="w-full resize-none rounded-xl
-                                       border border-slate-200 bg-white
-                                       px-4 py-3 text-sm leading-6 text-slate-700
-                                       outline-none transition
-                                       placeholder:text-slate-400
-                                       focus:border-sky-500
-                                       focus:ring-2 focus:ring-sky-100"
-                                placeholder="Tuliskan hasil pemeriksaan bukti dukung..."
-                            >{{ old('catatan_pemeriksaan', $pertanyaan->pemeriksaanTerakhir->catatan_pemeriksaan ?? '') }}</textarea>
                             @endif
 
-                        @else
-                            <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                                <p class="text-sm text-slate-600">
-                                    {{ $pertanyaan->pemeriksaanTerakhir->catatan_pemeriksaan ?? '-' }}
-                                </p>
                             </div>
-                        @endif
-                        </div>
 
-                    </section>
-                @endif
+                        </section>
+                    @endif
+
+                    @if (in_array($tahap, ['pemeriksaan', 'penilaian', 'selesai']))
+                        
+                        {{-- =================================================
+                            3. CATATAN PEMERIKSAAN MANDIRI
+                        ================================================== --}}
+                        <section class="rounded-2xl border border-slate-200
+                                        bg-white shadow-sm">
+
+                            <div class="px-5 pt-5">
+
+                                <div class="flex items-center gap-2">
+
+                                    <i data-lucide="clipboard-check"
+                                        class="h-4 w-4 text-sky-600"></i>
+
+                                    <h2 class="text-xs font-bold uppercase
+                                            tracking-wide text-slate-600">
+                                        Catatan Pemeriksaan Mandiri
+
+                                        @if($bisaPemeriksaan)<span class="text-red-500">*</span>@endif
+
+                                    </h2>
+
+                                </div>
 
 
+                                <p class="mt-1 text-[10px] leading-4 text-slate-400">
+                                    Catatan hasil pemeriksaan bukti dukung sebelum
+                                    dilakukan penilaian.
+                                </p>
+
+                            </div>
+
+
+                            <div class="p-5">
+
+      
+                                @if($bisaPemeriksaan && $buktiAda && $tahap === 'pemeriksaan')
+                                <textarea
+                                    rows="4"
+                                    name="catatan_pemeriksaan"
+                                    class="w-full resize-none rounded-xl
+                                        border border-slate-200 bg-white
+                                        px-4 py-3 text-sm leading-6 text-slate-700
+                                        outline-none transition
+                                        placeholder:text-slate-400
+                                        focus:border-sky-500
+                                        focus:ring-2 focus:ring-sky-100"
+                                    placeholder="Tuliskan hasil pemeriksaan bukti dukung..."
+                                ></textarea>
+
+                                @else
+                                <div class="w-full resize-none rounded-xl
+                                        border border-slate-200 bg-slate-50
+                                        px-4 py-3 text-sm leading-6 text-slate-700
+                                        outline-none transition">
+                                    <p class="text-sm text-slate-600">
+                                        {{ $catatanPemeriksaan ?? '-' }}
+                                    </p>
+                                </div>
+                                @endif
+                            
+                            </div>
+
+                        </section>
+                    @endif
+
+
+
+
+                    {{-- =================================================
+                        7. RIWAYAT CATATAN MANDIRI
+                    ================================================== --}}
+                    @if (in_array($tahap, ['pemeriksaan', 'penilaian', 'selesai']) )
+                        <section class="rounded-2xl border border-slate-200
+                                        bg-white shadow-sm">
+
+                            <div class="px-5 pt-5">
+
+                                <div class="flex items-center gap-2">
+
+                                        <i data-lucide="history"
+                                            class="h-4 w-4 text-sky-600"></i>
+
+                                        <h2 class="text-xs font-bold uppercase
+                                                tracking-wide text-slate-600">
+                                            Riwayat Catatan Pemeriksaan Mandiri
+                                        </h2>
+
+                                </div>
+
+
+                                <p class="mt-1 text-[10px] leading-4 text-slate-400">
+                                    Catatan hasil pemeriksaan bukti dukung sebelumnya.
+                                </p>
+
+                                </div>
+
+                            {{-- </div> --}}
+
+
+                            <div class="space-y-2 p-5 max-h-54 overflow-y-auto ">
+
+                                @forelse(
+                                    $pertanyaan->pemeriksaan->sortByDesc('created_at')
+                                    as $pemeriksaan
+                                )
+
+                                    <div class="rounded-xl border border-slate-200
+                                                bg-slate-50 p-4 max-h-36">
+
+
+
+
+                                        {{-- Isi --}}
+                                        <div class="space-y-2">
+
+                                            {{-- Catatan --}}
+                                            @if($pemeriksaan->catatan_pemeriksaan)
+
+                                                <div class="
+                                                            ">
+
+                                                    <p class="text-[10px] font-medium
+                                                            tracking-wide
+                                                            text-slate-500">
+                                                        <span class="text-[10px] font-bold
+                                                            uppercase tracking-wide text-slate-700"
+                                                        ><span class=" rounded-xl py-0.5 px-1 border font-medium capitalize
+                                                            {{ 
+                                                                $pemeriksaan->status_pemeriksaan === 'sesuai'
+                                                                    ? 'text-emerald-700 bg-emerald-50 border-emerald-100'
+                                                                    : 'text-amber-700 bg-amber-50 border-amber-100'
+                                                            }}">{{ ucfirst($pemeriksaan->status_pemeriksaan) }}</span>
+
+                                                             Catatan Pemeriksaan  </span>
+                                                        • {{ Carbon\Carbon::parse($pemeriksaan->created_at)->setTimezone('Asia/Makassar')->format('d M Y, H:i') }}
+                                                    </p>
+
+
+                                                    <p class="mt-1 text-sm leading-6
+                                                            text-slate-600">
+
+                                                        {{ Str::title($pemeriksaan->catatan_pemeriksaan) }}
+
+                                                    </p>
+
+                                                </div>
+
+                                            @endif
+
+                                        </div>
+
+                                    </div>
+
+                                @empty
+
+                                    <div class="rounded-xl border border-dashed
+                                                border-slate-300 bg-slate-50
+                                                p-6 text-center">
+
+                                        <i
+                                            data-lucide="history"
+                                            class="mx-auto h-6 w-6 text-slate-300"
+                                        ></i>
+
+                                        <p class="mt-2 text-xs font-medium
+                                                text-slate-500">
+                                            Belum ada riwayat pemeriksaan
+                                        </p>
+
+                                        <p class="mt-1 text-[10px] text-slate-400">
+                                            Catatan pemeriksaan akan muncul setelah
+                                            pemeriksaan disimpan.
+                                        </p>
+
+                                    </div>
+
+                                @endforelse
+
+                            </div>
+
+                        </section>
+                    @endif
 
                     {{-- =================================================
                         PERSIAPAN PILIHAN JAWABAN
                     ================================================== --}}
+
+
                     @php
+                        /*
+                        |--------------------------------------------------------------------------
+                        | AMBIL PEMERIKSAAN TERAKHIR
+                        |--------------------------------------------------------------------------
+                        */
+
+                        $pemeriksaanTerakhir = $pertanyaan->pemeriksaanTerakhir;
+
+                        /*
+                        | Jawaban dari DB:
+                        | a / b / c / d / e
+                        */
+
+                        $jawabanTerakhir = strtolower(
+                            trim((string) ($pemeriksaanTerakhir->jawaban ?? ''))
+                        );
+
+
+                        /*
+                        |--------------------------------------------------------------------------
+                        | SIAPKAN PILIHAN JAWABAN
+                        |--------------------------------------------------------------------------
+                        */
 
                         $pilihan = preg_split(
                             '/\r\n|\r|\n/',
@@ -639,12 +835,29 @@
                         $pilihan = array_values(
                             array_filter(
                                 $pilihan,
-                                fn($item) => trim($item) !== ''
+                                fn ($item) => trim($item) !== ''
                             )
                         );
 
-                        $jawabanTerakhir =
-                            $pertanyaan->pemeriksaanTerakhir->jawaban ?? '';
+
+                        /*
+                        |--------------------------------------------------------------------------
+                        | CARI TEKS PILIHAN BERDASARKAN JAWABAN
+                        |--------------------------------------------------------------------------
+                        |
+                        | Contoh:
+                        |
+                        | jawaban = a
+                        |
+                        | kriteria_nilai:
+                        | A. Sangat Baik
+                        | B. Baik
+                        | C. Cukup
+                        |
+                        | hasil:
+                        | A. Sangat Baik
+                        |
+                        */
 
                         $jawabanTerakhirText = '';
 
@@ -652,510 +865,422 @@
 
                             $itemTrim = trim($item);
 
-                            preg_match(
-                                '/^([a-eA-E])[\.\)]?\s*/',
+                            /*
+                            |--------------------------------------------------------------
+                            | YA / TIDAK
+                            |--------------------------------------------------------------
+                            */
+                            if (
+                                strtolower(trim($pertanyaan->kriteria_jawaban))
+                                === 'ya/tidak'
+                            ) {
+
+                                if (
+                                    strtolower($itemTrim)
+                                    === $jawabanTerakhir
+                                ) {
+                                    $jawabanTerakhirText = $itemTrim;
+                                    break;
+                                }
+
+                                continue;
+                            }
+
+                            /*
+                            |--------------------------------------------------------------
+                            | A / B / C / D / E
+                            |--------------------------------------------------------------
+                            */
+                            if (preg_match(
+                                '/^([a-eA-E])(?:[.\)]|\s)/',
                                 $itemTrim,
                                 $match
-                            );
+                            )) {
 
-                            $kode = isset($match[1])
-                                ? strtolower($match[1])
-                                : strtolower(substr($itemTrim, 0, 1));
+                                $kodeItem = strtolower($match[1]);
 
-                            if ($kode === $jawabanTerakhir) {
-
-                                $jawabanTerakhirText = $itemTrim;
-
-                                break;
+                                if ($kodeItem === $jawabanTerakhir) {
+                                    $jawabanTerakhirText = $itemTrim;
+                                    break;
+                                }
                             }
                         }
 
+                        /*
+                        |--------------------------------------------------------------
+                        | FALLBACK
+                        |--------------------------------------------------------------
+                        */
+                        if (
+                            $jawabanTerakhirText === ''
+                            && $jawabanTerakhir !== ''
+                        ) {
+                            $jawabanTerakhirText = strtoupper(
+                                $jawabanTerakhir
+                            );
+                        }
                     @endphp
 
-                    {{-- =================================================
-                        7. RIWAYAT CATATAN MANDIRI
-                    ================================================== --}}
-                    <section class="rounded-2xl border border-slate-200
-                                    bg-white shadow-sm">
 
-                        {{-- <div class="border-b border-slate-200 px-5 py-4"> --}}
+
+
+
+                    @if (in_array($tahap, ['penilaian', 'selesai']))
+
+                        {{-- =================================================
+                            4. PILIH JAWABAN
+                        ================================================== --}}
+                        <section
+                            class="rounded-2xl border border-slate-200
+                                bg-white shadow-sm"
+                            x-data="{
+                                open: false,
+                                selected: @js($jawabanTerakhirText),
+                                value: @js($jawabanTerakhir)
+                            }"
+                        >
 
                             <div class="px-5 pt-5">
 
                                 <div class="flex items-center gap-2">
 
-                                    <i data-lucide="history"
+                                    <i
+                                        data-lucide="circle-star"
+                                        class="h-4 w-4 text-sky-600"
+                                    ></i>
+
+                                    <h2 class="text-xs font-bold uppercase
+                                            tracking-wide text-slate-600">
+
+                                        Pilih Jawaban
+
+                                        @if($bisaPemeriksaan)<span class="text-red-500">*</span>@endif
+
+                                    </h2>
+
+                                </div>
+
+                                <p class="mt-1 text-[10px] leading-4 text-slate-400">
+                                    @if($bisaPemeriksaan)
+                                        Pilih jawaban yang sesuai dengan hasil
+                                        penilaian mandiri.
+                                    @else
+                                        Jawaban yang sesuai dengan hasil
+                                        penilaian mandiri.
+                                    @endif
+                                </p>
+                                
+                            </div>
+
+
+                            <div class="relative p-5">
+                            @if($bisaPemeriksaan && $buktiAda && $pemeriksaanSesuai)
+
+                                {{-- Tombol Dropdown --}}
+                                <button
+                                    type="button"
+                                    @click="open = !open"
+                                    @click.outside="open = false"
+                                    class="flex w-full items-center justify-between
+                                        rounded-xl border border-slate-200
+                                        bg-white px-4 py-3 text-left text-sm
+                                        text-slate-700 outline-none transition
+                                        hover:border-slate-300
+                                        focus:border-sky-500
+                                        focus:ring-2 focus:ring-sky-100"
+                                >
+
+                                    <span
+                                        class="truncate"
+                                        :class="
+                                            selected
+                                                ? 'text-slate-700'
+                                                : 'text-slate-400'
+                                        "
+                                        x-text="selected || 'Pilih jawaban'"
+                                    ></span>
+
+
+                                    <i
+                                        data-lucide="chevron-down"
+                                        class="ml-3 h-4 w-4 shrink-0 text-slate-400
+                                            transition-transform duration-200"
+                                        :class="{ 'rotate-180': open }"
+                                    ></i>
+
+                                </button>
+
+
+
+                                {{-- Dropdown Menu --}}
+                                <div
+                                    x-show="open"
+                                    x-transition
+                                    class="absolute left-5 right-5
+                                        top-[calc(100%-1rem)] z-30 mt-1
+                                        overflow-hidden rounded-xl border
+                                        border-slate-200 bg-white shadow-lg"
+                                    style="display: none;"
+                                >
+
+                                    <div class="max-h-72 overflow-y-auto p-1">
+
+                                        @foreach($pilihan as $item)
+
+                                            @php
+                                                $itemTrim = trim($item);
+
+                                                /*
+                                                |--------------------------------------------------------------
+                                                | Jika kriteria Ya/Tidak
+                                                |--------------------------------------------------------------
+                                                */
+                                                if (preg_match('/^(ya|tidak)(?:[.)])?\s*/i', $itemTrim, $match)) {
+
+                                                    $kodeItem = strtolower($match[1]);
+
+                                                } elseif (preg_match('/^([a-eA-E])(?:[.)])?\s*/', $itemTrim, $match)) {
+
+                                                    $kodeItem = strtolower($match[1]);
+
+                                                } else {
+
+                                                    $kodeItem = strtolower(substr($itemTrim, 0, 1));
+                                                }
+                                            @endphp
+
+                                            <button
+                                                type="button"
+                                                @click="
+                                                    selected = @js($itemTrim);
+                                                    value = @js($kodeItem);
+                                                    open = false;
+                                                "
+                                                class="w-full rounded-lg px-3 py-2.5
+                                                    text-left text-sm text-slate-700
+                                                    transition hover:bg-slate-50"
+                                            >
+                                                {{ $itemTrim }}
+                                            </button>
+                                        @endforeach
+
+                                    </div>
+
+                                </div>
+                            
+                                {{-- Nilai yang dikirim --}}
+                                    <input
+                                        type="hidden"
+                                        name="jawaban"
+                                        :value="value"
+                                        required
+                                    >
+                            
+                            @else
+
+                                {{-- USER YANG HANYA BOLEH MELIHAT --}}
+                                <div
+                                    class="flex w-full items-center justify-between
+                                        rounded-xl border border-slate-200
+                                        bg-slate-50 px-4 py-3 text-left text-sm
+                                        text-slate-700"
+                                >
+                                    <span class="truncate">
+                                      
+                                        {{ Str::title($jawabanTerakhir) ?? '-' }}
+                                    </span>
+
+                                    <i
+                                        data-lucide="chevron-down"
+                                        class="ml-3 h-4 w-4 shrink-0 text-slate-300"
+                                    ></i>
+                                </div>
+
+                            
+                            @endif
+                            </div>
+
+                        </section>
+                    @endif
+
+
+                    @if (in_array($tahap, ['penilaian', 'selesai']))
+
+                        {{-- =================================================
+                            5. NARASI
+                        ================================================== --}}
+                        <section class="rounded-2xl border border-slate-200
+                                        bg-white shadow-sm">
+
+                            <div class="px-5 pt-5">
+
+                                <div class="flex items-center gap-2">
+
+                                    <i data-lucide="file-text"
                                         class="h-4 w-4 text-sky-600"></i>
 
                                     <h2 class="text-xs font-bold uppercase
                                             tracking-wide text-slate-600">
-                                        Riwayat Catatan Pemeriksaan Mandiri
+
+                                        Narasi
+
+                                        @if($bisaPemeriksaan)<span class="text-red-500">*</span>@endif
+
+
                                     </h2>
 
                                 </div>
 
 
                                 <p class="mt-1 text-[10px] leading-4 text-slate-400">
-                                    Catatan hasil pemeriksaan bukti dukung sebelumnya.
+                                    Penjelasan yang mendukung hasil penilaian mandiri.
                                 </p>
 
                             </div>
 
-                        {{-- </div> --}}
 
-
-                        <div class="space-y-4 p-5">
-
-                            @forelse(
-                                $pertanyaan->pemeriksaan->sortByDesc('diperiksa_pada')
-                                as $pemeriksaan
-                            )
-
-                                <div class="rounded-xl border border-slate-200
-                                            bg-slate-50 p-4">
-
-
-                                    {{-- Header --}}
-                                    <div class="flex items-center
-                                                justify-between gap-4">
-
-                                        <span
-                                            class="text-[10px] font-bold uppercase
-                                                   tracking-wide
-                                                   {{
-                                                       $pemeriksaan->status_pemeriksaan === 'sesuai'
-                                                           ? 'text-emerald-700'
-                                                           : 'text-amber-700'
-                                                   }}"
-                                        >
-
-                                            {{ ucfirst($pemeriksaan->status_pemeriksaan) }}
-
+                            <div class="p-5">
+                                @if($bisaPemeriksaan && $buktiAda && $pemeriksaanSesuai )
+                                <textarea
+                                    rows="5"
+                                    name="narasi"
+                                    class="w-full resize-none rounded-xl
+                                        border border-slate-200 bg-white
+                                        px-4 py-3 text-sm leading-6 text-slate-700
+                                        outline-none transition
+                                        placeholder:text-slate-400
+                                        focus:border-sky-500
+                                        focus:ring-2 focus:ring-sky-100"
+                                    placeholder="Tuliskan narasi..."
+                                >{{ $narasiTerakhir ?? '' }}</textarea>
+                                @else
+                                    {{-- USER YANG HANYA BOLEH MELIHAT --}}
+                                    <div
+                                        class="flex w-full items-center justify-between
+                                            rounded-xl border border-slate-200
+                                            bg-slate-50 px-4 py-3 text-left text-sm
+                                            text-slate-700"
+                                    >
+                                        <span class="truncate">
+                                            {{ $narasiTerakhir ?? '-' }}
                                         </span>
-
-
-                                        <span class="text-[10px] text-slate-400">
-
-                                            {{ $pemeriksaan->diperiksa_pada
-                                                ? $pemeriksaan->diperiksa_pada
-                                                    ->translatedFormat('d M Y, H.i')
-                                                : '-' }}
-
-                                        </span>
-
                                     </div>
-
-
-
-                                    {{-- Isi --}}
-                                    <div class="mt-4 space-y-4">
-
-
-                                        {{-- Pemeriksa --}}
-                                        @if($pemeriksaan->pemeriksa)
-
-                                            <div class="flex items-center gap-2
-                                                        text-[10px] text-slate-400">
-
-                                                <i
-                                                    data-lucide="user"
-                                                    class="h-3.5 w-3.5"
-                                                ></i>
-
-                                                <span>
-
-                                                    Diperiksa oleh:
-
-                                                    <span class="font-medium
-                                                                 text-slate-600">
-
-                                                        {{ $pemeriksaan->pemeriksa->name }}
-
-                                                    </span>
-
-                                                </span>
-
-                                            </div>
-
-                                        @endif
-
-
-
-                                        {{-- Catatan --}}
-                                        @if($pemeriksaan->catatan_pemeriksaan)
-
-                                            <div class="border-t border-slate-200
-                                                        pt-3">
-
-                                                <p class="text-[10px] font-bold
-                                                          uppercase tracking-wide
-                                                          text-amber-700">
-                                                    Catatan Pemeriksaan
-                                                </p>
-
-
-                                                <p class="mt-1 text-sm leading-6
-                                                          text-slate-600">
-
-                                                    {{ $pemeriksaan->catatan_pemeriksaan }}
-
-                                                </p>
-
-                                            </div>
-
-                                        @endif
-
-                                    </div>
-
-                                </div>
-
-                            @empty
-
-                                <div class="rounded-xl border border-dashed
-                                            border-slate-300 bg-slate-50
-                                            p-6 text-center">
-
-                                    <i
-                                        data-lucide="history"
-                                        class="mx-auto h-6 w-6 text-slate-300"
-                                    ></i>
-
-                                    <p class="mt-2 text-xs font-medium
-                                              text-slate-500">
-                                        Belum ada riwayat pemeriksaan
-                                    </p>
-
-                                    <p class="mt-1 text-[10px] text-slate-400">
-                                        Catatan pemeriksaan akan muncul setelah
-                                        pemeriksaan disimpan.
-                                    </p>
-
-                                </div>
-
-                            @endforelse
-
-                        </div>
-
-                    </section>
-
-
-                @if (in_array($tahap, ['penilaian', 'selesai']))
-
-                    {{-- =================================================
-                        4. PILIH JAWABAN
-                    ================================================== --}}
-                    <section
-                        class="rounded-2xl border border-slate-200
-                               bg-white shadow-sm"
-                        x-data="{
-                            open: false,
-                            selected: @js($jawabanTerakhirText),
-                            value: '{{ $jawabanTerakhir }}'
-                        }"
-                    >
-
-                        <div class="px-5 pt-5">
-
-                            <div class="flex items-center gap-2">
-
-                                <i
-                                    data-lucide="circle-star"
-                                    class="h-4 w-4 text-sky-600"
-                                ></i>
-
-                                <h2 class="text-xs font-bold uppercase
-                                           tracking-wide text-slate-600">
-
-                                    Pilih Jawaban
-
-                                    <span class="text-red-500">*</span>
-
-                                </h2>
-
+                                @endif
                             </div>
 
-
-                            <p class="mt-1 text-[10px] leading-4 text-slate-400">
-                                Pilih jawaban yang sesuai dengan hasil
-                                penilaian mandiri.
-                            </p>
-
-                        </div>
-
-
-                        <div class="relative p-5">
-                        @if($bisaPemeriksaan && $buktiAda && $pemeriksaanSesuai)
-
-                            {{-- Tombol Dropdown --}}
-                            <button
-                                type="button"
-                                @click="open = !open"
-                                @click.outside="open = false"
-                                class="flex w-full items-center justify-between
-                                       rounded-xl border border-slate-200
-                                       bg-white px-4 py-3 text-left text-sm
-                                       text-slate-700 outline-none transition
-                                       hover:border-slate-300
-                                       focus:border-sky-500
-                                       focus:ring-2 focus:ring-sky-100"
-                            >
-
-                                <span
-                                    class="truncate"
-                                    :class="
-                                        selected
-                                            ? 'text-slate-700'
-                                            : 'text-slate-400'
-                                    "
-                                    x-text="selected || 'Pilih jawaban'"
-                                ></span>
-
-
-                                <i
-                                    data-lucide="chevron-down"
-                                    class="ml-3 h-4 w-4 shrink-0 text-slate-400
-                                           transition-transform duration-200"
-                                    :class="{ 'rotate-180': open }"
-                                ></i>
-
-                            </button>
-
-
-
-                            {{-- Dropdown Menu --}}
-                            <div
-                                x-show="open"
-                                x-transition
-                                class="absolute left-5 right-5
-                                       top-[calc(100%-1rem)] z-30 mt-1
-                                       overflow-hidden rounded-xl border
-                                       border-slate-200 bg-white shadow-lg"
-                                style="display: none;"
-                            >
-
-                                <div class="max-h-72 overflow-y-auto p-1">
-
-                                    @foreach($pilihan as $item)
-
-                                        @php
-
-                                            $item = trim($item);
-
-                                            preg_match(
-                                                '/^([a-eA-E])[\.\)]?\s*/',
-                                                $item,
-                                                $match
-                                            );
-
-                                            $kode = isset($match[1])
-                                                ? strtolower($match[1])
-                                                : strtolower(substr($item, 0, 1));
-
-                                        @endphp
-
-
-                                        <button
-                                            type="button"
-                                            @click="
-                                                selected = @js($item);
-                                                value = '{{ $kode }}';
-                                                open = false;
-                                            "
-                                            class="w-full rounded-lg px-3 py-2.5
-                                                   text-left text-sm text-slate-700
-                                                   transition hover:bg-slate-50"
-                                        >
-                                            {{ $item }}
-                                        </button>
-
-                                    @endforeach
-
-                                </div>
-
-                            </div>
-                        
-
-
-                            {{-- Nilai yang dikirim --}}
-                            @if (in_array($tahap, ['penilaian', 'selesai']))
-                                <input
-                                    type="hidden"
-                                    name="jawaban"
-                                    :value="value"
-                                    required
-                                >
-                            @endif
-                        @endif
-                        </div>
-
-                    </section>
-                @endif
-
-
-                @if (in_array($tahap, ['penilaian', 'selesai']))
-
-                    {{-- =================================================
-                        5. NARASI
-                    ================================================== --}}
-                    <section class="rounded-2xl border border-slate-200
-                                    bg-white shadow-sm">
-
-                        <div class="px-5 pt-5">
-
-                            <div class="flex items-center gap-2">
-
-                                <i data-lucide="file-text"
-                                    class="h-4 w-4 text-sky-600"></i>
-
-                                <h2 class="text-xs font-bold uppercase
-                                           tracking-wide text-slate-600">
-
-                                    Narasi
-
-                                    <span class="text-red-500">*</span>
-
-                                </h2>
-
-                            </div>
-
-
-                            <p class="mt-1 text-[10px] leading-4 text-slate-400">
-                                Penjelasan yang mendukung hasil penilaian mandiri.
-                            </p>
-
-                        </div>
-
-
-                        <div class="p-5">
-                            @if($bisaPemeriksaan && $buktiAda && $pemeriksaanSesuai)
-                            <textarea
-                                rows="5"
-                                name="narasi"
-                                class="w-full resize-none rounded-xl
-                                       border border-slate-200 bg-white
-                                       px-4 py-3 text-sm leading-6 text-slate-700
-                                       outline-none transition
-                                       placeholder:text-slate-400
-                                       focus:border-sky-500
-                                       focus:ring-2 focus:ring-sky-100"
-                                placeholder="Tuliskan narasi..."
-                            >{{ old('narasi', $pertanyaan->pemeriksaanTerakhir->narasi ?? '') }}</textarea>
-                            @endif
-                        </div>
-
-                    </section>
-                @endif
-
-                @if ($tahap === 'selesai')
-                    {{-- =================================================
-                        6. HASIL PENILAIAN MANDIRI
-                    ================================================== --}}
-                    @if($pertanyaan->nilai !== null)
-                    <section class="rounded-2xl border border-slate-200
-                                    bg-white shadow-sm">
-
-                        <div class="px-5 pt-5">
-
-                            <div class="flex items-center gap-2">
-
-                                <i data-lucide="award"
-                                    class="h-4 w-4 text-sky-600"></i>
-
-                                <h2 class="text-xs font-bold uppercase
-                                           tracking-wide text-slate-600">
-                                    Hasil Penilaian Mandiri
-                                </h2>
-
-                            </div>
-
-
-                            <p class="mt-1 text-[10px] text-slate-400">
-                                Nilai berdasarkan hasil penilaian mandiri.
-                            </p>
-
-                        </div>
-
-
-                        <div class="p-5">
-
-                            @php
-
-                                $nilai = $pertanyaan->nilai ?? 0;
-
-                                $bobot =
-                                    $pertanyaan->subpilar->bobot ?? 0;
-
-                                $persentase = $bobot > 0
-                                    ? ($nilai / $bobot) * 100
-                                    : 0;
-
-                            @endphp
-
-
-                            <div class="grid grid-cols-2 gap-3">
-
-
-                                {{-- NILAI --}}
-                                <div class="rounded-xl border border-slate-200
-                                            bg-slate-50 p-4">
-
-                                    <p class="text-[10px] font-semibold
-                                              uppercase tracking-wide
-                                              text-slate-400">
-                                        Nilai
-                                    </p>
-
-
-                                    <div class="mt-2 flex items-end gap-1">
-
-                                        <span class="text-2xl font-bold text-sky-700">
-                                            {{ number_format($nilai, 2) }}
-                                        </span>
-
-                                        <span class="mb-1 text-xs text-slate-400">
-                                            /
-                                            {{ number_format($bobot, 2) }}
-                                        </span>
-
-                                    </div>
-
-                                </div>
-
-
-
-                                {{-- PERSENTASE --}}
-                                <div class="rounded-xl border border-emerald-100
-                                            bg-emerald-50 p-4">
-
-                                    <p class="text-[10px] font-semibold
-                                              uppercase tracking-wide
-                                              text-emerald-600">
-                                        Persentase
-                                    </p>
-
-
-                                    <div class="mt-2">
-
-                                        <span class="text-2xl font-bold
-                                                     text-emerald-600">
-                                            {{ number_format($persentase, 2) }}
-                                        </span>
-
-                                        <span class="mb-1 text-xs text-slate-400">
-                                            %
-                                        </span>
-
-                                    </div>
-
-                                </div>
-
-                            </div>
-
-                        </div>
-
-                    </section>
+                        </section>
                     @endif
-                @endif
+
+                    @if ($tahap === 'selesai')
+                        {{-- =================================================
+                            6. HASIL PENILAIAN MANDIRI
+                        ================================================== --}}
+                        @if($pertanyaan->pemeriksaanTerakhir->nilai !== null)
+                        <section class="rounded-2xl border border-slate-200
+                                        bg-white shadow-sm">
+
+                            <div class="px-5 pt-5">
+
+                                <div class="flex items-center gap-2">
+
+                                    <i data-lucide="award"
+                                        class="h-4 w-4 text-sky-600"></i>
+
+                                    <h2 class="text-xs font-bold uppercase
+                                            tracking-wide text-slate-600">
+                                        Hasil Penilaian Mandiri
+                                    </h2>
+
+                                </div>
+
+
+                                <p class="mt-1 text-[10px] text-slate-400">
+                                    Nilai berdasarkan hasil penilaian mandiri.
+                                </p>
+
+                            </div>
+
+
+                            <div class="p-5">
+
+                                @php
+
+                                    $nilai = $pertanyaan->pemeriksaanTerakhir->nilai ?? 0;
+
+                                    $bobot =
+                                        $pertanyaan->subpilar->bobot ?? 0;
+
+                                    $persentase = $bobot > 0
+                                        ? ($nilai) * 100
+                                        : 0;
+
+                                @endphp
+
+
+                                <div class="grid grid-cols-2 gap-3">
+
+
+                                    {{-- NILAI --}}
+                                    <div class="rounded-xl border border-slate-200
+                                                bg-slate-50 p-4">
+
+                                        <p class="text-[10px] font-semibold
+                                                uppercase tracking-wide
+                                                text-slate-400">
+                                            Nilai
+                                        </p>
+
+
+                                        <div class="mt-2 flex items-end gap-1">
+
+                                            <span class="text-2xl font-bold text-sky-700">
+                                                {{ number_format($nilai, 2) }}
+                                            </span>
+
+                                            <span class="mb-1 text-xs text-slate-400">
+                                                /
+                                                1.00
+                                            </span>
+
+                                        </div>
+
+                                    </div>
+
+
+
+                                    {{-- PERSENTASE --}}
+                                    <div class="rounded-xl border border-emerald-100
+                                                bg-emerald-50 p-4">
+
+                                        <p class="text-[10px] font-semibold
+                                                uppercase tracking-wide
+                                                text-emerald-600">
+                                            Persentase
+                                        </p>
+
+
+                                        <div class="mt-2">
+
+                                            <span class="text-2xl font-bold
+                                                        text-emerald-600">
+                                                {{ number_format($persentase, 2) }}
+                                            </span>
+
+                                            <span class="mb-1 text-xs text-slate-400">
+                                                %
+                                            </span>
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </section>
+                        @endif
+                    @endif
 
 
                     {{-- =================================================
@@ -1181,62 +1306,63 @@
 
                         </a>
 
-                    @if ($tahap === 'pemeriksaan')
-                        <button
-                            type="submit"
-                            class="inline-flex items-center justify-center
-                                   gap-2 rounded-xl bg-sky-950 px-5 py-2.5
-                                   text-xs font-semibold text-white
-                                   transition hover:bg-sky-900"
-                        >
+                        @if ($tahap === 'pemeriksaan' && $bisaPemeriksaan)
+                            <button
+                                type="submit"
+                                class="inline-flex items-center justify-center
+                                    gap-2 rounded-xl bg-sky-950 px-5 py-2.5
+                                    text-xs font-semibold text-white
+                                    transition hover:bg-sky-900"
+                            >
 
-                            <i
-                                data-lucide="save"
-                                class="h-4 w-4"
-                            ></i>
+                                <i
+                                    data-lucide="save"
+                                    class="h-4 w-4"
+                                ></i>
 
-                            Simpan Pemeriksaan
+                                Simpan Pemeriksaan
 
-                        </button>
-                    @elseif ($tahap === 'penilaian')
+                            </button>
+                        @elseif ($tahap === 'penilaian'&& $bisaPemeriksaan)
 
-                        <button
-                            type="submit"
-                            class="inline-flex items-center justify-center
-                                gap-2 rounded-xl bg-sky-950 px-5 py-2.5
-                                text-xs font-semibold text-white
-                                transition hover:bg-sky-900"
-                        >
-                            <i
-                                data-lucide="save"
-                                class="h-4 w-4"
-                            ></i>
+                            <button
+                                type="submit"
+                                class="inline-flex items-center justify-center
+                                    gap-2 rounded-xl bg-sky-950 px-5 py-2.5
+                                    text-xs font-semibold text-white
+                                    transition hover:bg-sky-900"
+                            >
+                                <i
+                                    data-lucide="save"
+                                    class="h-4 w-4"
+                                ></i>
 
-                            Simpan Penilaian
-                        </button>
+                                Simpan Penilaian
+                            </button>
 
-                    @elseif ($tahap === 'selesai')
+                        @elseif ($tahap === 'selesai'&& $bisaPemeriksaan)
 
-                        <button
-                            type="submit"
-                            class="inline-flex items-center justify-center
-                                gap-2 rounded-xl bg-sky-950 px-5 py-2.5
-                                text-xs font-semibold text-white
-                                transition hover:bg-sky-900"
-                        >
-                            <i
-                                data-lucide="save"
-                                class="h-4 w-4"
-                            ></i>
+                            <button
+                                type="submit"
+                                class="inline-flex items-center justify-center
+                                    gap-2 rounded-xl bg-sky-950 px-5 py-2.5
+                                    text-xs font-semibold text-white
+                                    transition hover:bg-sky-900"
+                            >
+                                <i
+                                    data-lucide="save"
+                                    class="h-4 w-4"
+                                ></i>
 
-                            Perbarui Penilaian
-                        </button>
+                                Perbarui Penilaian
+                            </button>
 
-                    @endif
+                        @endif
 
                     </div>
 
-            </form>
+                </form>
+
                 {{-- =====================================================
                     END FORM PEMERIKSAAN KIRI
                 ====================================================== --}}
@@ -1248,11 +1374,11 @@
                     BUKTI DUKUNG
                 ================================================== --}}
                 <aside
-                    class="xl:sticky xl:top-5 xl:h-[calc(100vh-40px)]"
+                    class="xl:sticky xl:top-5"
                 >
 
                     <section
-                        class="flex h-full flex-col rounded-2xl
+                        class="rounded-2xl
                                border border-slate-200 bg-white shadow-sm"
                     >
 
@@ -1387,14 +1513,19 @@
                                                                    font-semibold
                                                                    text-slate-700"
                                                         >
-                                                            {{ $bukti->link_bukti_dukung }}
+                                                            {{ $bukti->id_bukti_dukung . ' ' . $bukti->nama_bukti_dukung_singkat }}
                                                         </p>
 
                                                         <p
                                                             class="mt-1 text-[9px]
                                                                    text-slate-400"
                                                         >
-                                                            File bukti dukung
+                                                            @if($bukti->time_uploaded === $bukti->time_updated)
+                                                                Diupload: 
+                                                            @else
+                                                                Diperbarui: 
+                                                            @endif
+                                                            {{ Carbon\Carbon::parse($bukti->time_updated)->setTimezone('Asia/Makassar')->format('d M Y, H:i') }}
                                                         </p>
 
                                                     </div>
@@ -1450,7 +1581,7 @@
 
 
                                                         {{-- Reupload --}}
-                                                        @if($bisaUpload)
+                                                        @if($bisaUpload && in_array($tahap, ['dasar', 'pemeriksaan'] ))
                                                         <button
                                                             type="button"
                                                             title="Reupload"
@@ -1467,9 +1598,29 @@
                                                                 data-lucide="pencil"
                                                                 class="h-3.5 w-3.5"
                                                             ></i>
-                                                            {{-- <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-refresh-cw-icon lucide-refresh-cw"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg> --}}
 
                                                         </button>
+                                                        @endif
+
+                                                        {{-- Hapus --}}
+                                                        @if($isAdmin)
+                                                            <form
+                                                                action="{{ route('delete.bukti-dukung', $bukti->id) }}"
+                                                                method="POST"
+                                                                onsubmit="return confirm('Yakin ingin menghapus file ini?')"
+                                                            >
+                                                                @csrf
+
+                                                                <button
+                                                                    type="submit"
+                                                                    title="Hapus"
+                                                                    class="inline-flex items-center justify-center rounded-md
+                                                                        border border-red-200 bg-red-50 p-1.5 cursor-pointer
+                                                                        text-red-600 transition hover:bg-red-100"
+                                                                >
+                                                                    <i data-lucide="trash" class="h-3.5 w-3.5"></i>
+                                                                </button>
+                                                            </form>
                                                         @endif
 
                                                     </div>
@@ -1560,7 +1711,7 @@
 
                                                 <p
                                                     class="mt-1 text-[10px]
-                                                           text-slate-400"
+                                                        font-medium text-sky-600"
                                                 >
                                                     PDF
                                                 </p>
@@ -1967,7 +2118,7 @@
 
             const response =
                 await fetch(
-                    "{{ route('bukti-dukung.upload') }}",
+                    "{{ route('upload.bukti-dukung') }}",
                     {
                         method: 'POST',
 
@@ -1987,6 +2138,8 @@
                         body: formData
                     }
                 );
+
+
 
 
 
@@ -2035,7 +2188,6 @@
             }
 
 
-
             /*
             |--------------------------------------------------------------------------
             | BERHASIL
@@ -2051,6 +2203,15 @@
 
             }
 
+            // membedakan upload dengan reupload
+            const statusElement = document.getElementById(
+                `upload-status-${data.id_bukti_dukung}`
+            );
+
+            if (statusElement) {
+                statusElement.textContent =
+                    `${data.isUpload ? 'Diupload:' : 'Diperbarui:'} ${data.time_updated}`;
+            }
 
 
             /*
@@ -2098,7 +2259,11 @@
                                 class="mt-1 text-[9px]
                                     text-emerald-600"
                             >
-                                File berhasil diupload
+                                @if($bukti->time_uploaded === $bukti->time_updated)
+                                    File berhasil diupload
+                                @else 
+                                    File berhasil diperbarui
+                                @endif
                             </p>
 
                         </div>
@@ -2160,6 +2325,27 @@
                                 ></i>
 
                             </button>
+
+                                                                                    {{-- Hapus --}}
+                            @if($isAdmin)
+                                <form
+                                    action="{{ route('delete.bukti-dukung', $bukti->id) }}"
+                                    method="POST"
+                                    onsubmit="return confirm('Yakin ingin menghapus file ini?')"
+                                >
+                                    @csrf
+
+                                    <button
+                                        type="submit"
+                                        title="Hapus"
+                                        class="inline-flex items-center justify-center rounded-md
+                                            border border-red-200 bg-red-50 p-1.5 cursor-pointer
+                                            text-red-600 transition hover:bg-red-100"
+                                    >
+                                        <i data-lucide="trash" class="h-3.5 w-3.5"></i>
+                                    </button>
+                                </form>
+                            @endif
 
                         </div>
 

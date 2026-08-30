@@ -376,7 +376,7 @@
                                 <div class="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
                                     <div class="h-full rounded-full bg-amber-400" 
                                                 style="width: {{ $totalPertanyaan > 0
-                                                            ? ($pertanyaanPerbaikan / $totalPertanyaan) * 100
+                                                            ? number_format(($pertanyaanPerbaikan / $totalPertanyaan),2) * 100
                                                             : 0
                                                         }}%">
                                     </div>
@@ -384,7 +384,7 @@
 
                                 <span class="shrink-0 text-[10px] font-semibold text-slate-400">
                                     {{ $totalPertanyaan > 0
-                                        ? ($pertanyaanPerbaikan / $totalPertanyaan) * 100
+                                        ? number_format(($pertanyaanPerbaikan / $totalPertanyaan) * 100,2)
                                         : 0
                                     }}%
                                 </span>
@@ -423,7 +423,7 @@
 
                                 <span class="shrink-0 text-[10px] font-semibold text-slate-400">
                                     {{ $totalPertanyaan > 0
-                                        ? ($pertanyaanSesuai / $totalPertanyaan) * 100
+                                        ? number_format(($pertanyaanSesuai / $totalPertanyaan) * 100,2)
                                         : 0
                                     }}%
                                 </span>
@@ -463,8 +463,7 @@
 
                                 <span class="shrink-0 text-[10px] font-semibold text-slate-400">
                                     {{ $totalPertanyaan > 0
-                                        ? ($pertanyaanDinilai / $totalPertanyaan) * 100
-                                        : 0
+                                        ? number_format(($pertanyaanDinilai / $totalPertanyaan) * 100,2)                                        : 0
                                     }}%
                                 </span>
                             </div>

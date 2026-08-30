@@ -37,7 +37,8 @@ class PertanyaanLKE extends Model
     {
         return $this->hasMany(
             PemeriksaanLKE::class,
-            'pertanyaan_lke_id'
+            'pertanyaan_lke_id',
+            'id_pertanyaan'
         );
     }
 
@@ -45,7 +46,8 @@ class PertanyaanLKE extends Model
     {
         return $this->hasOne(
             PemeriksaanLKE::class,
-            'pertanyaan_lke_id'
+            'pertanyaan_lke_id',
+            'id_pertanyaan'
         )->latestOfMany();
     }
 }

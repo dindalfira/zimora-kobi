@@ -17,10 +17,12 @@ class PelaksanaanKegiatan extends Model
         'waktu_pelaksanaan',
         'dokumentasi',
         'status_pelaksanaan',
+        'time_updated',
     ];
 
     protected $casts = [
         'waktu_pelaksanaan' => 'date',
+        'time_updated' => 'datetime',
     ];
 
     public function kegiatan()

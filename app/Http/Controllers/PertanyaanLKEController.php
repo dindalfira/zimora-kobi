@@ -23,12 +23,16 @@ class PertanyaanLKEController extends Controller
 
         foreach ($pertanyaan as $item) {
 
-            $statusBaru = $this->getStatusPertanyaan($item);
+            // Status dihitung langsung dari kondisi sistem
+            $item->status_sistem = $this->getStatusPertanyaan($item);
 
-            if ($item->status_pertanyaan !== $statusBaru) {
+
+
+            // Kalau tetap ingin sinkronisasi ke database
+            if ($item->status_pertanyaan !== $item->status_sistem) {
                 $item->update([
-                    'status_pertanyaan' => $statusBaru,
-                ]);
+                    'status_pertanyaan' => $item->status_sistem,
+                ]); 
             }
         }
 
@@ -42,72 +46,92 @@ class PertanyaanLKEController extends Controller
             'buktiDukung',
             'pemeriksaan.pemeriksa',
             'pemeriksaanTerakhir',
-        ])->firstOrFail($id_pertanyaan);
+        ])->findOrFail($id_pertanyaan);
 
-        $role = strtolower(Auth::user()->role ?? '');
 
-            $isAdminSekretaris = in_array(
-                $role,
-                ['admin', 'sekretaris']
-            );
+        $semuaBuktiLengkap =
+            $this->buktiDukungLengkap($pertanyaan);
 
-            $semuaBuktiLengkap =
-                $this->buktiDukungLengkap($pertanyaan);
+        $pemeriksaanTerakhir =
+            $pertanyaan->pemeriksaanTerakhir;
 
-            $pemeriksaanTerakhir =
-                $pertanyaan->pemeriksaanTerakhir;
+            dd([
+                'id_pertanyaan' => $pertanyaan->id_pertanyaan,
+
+                'bukti_dukung' => BuktiDukungLKE::where(
+                    'id_pertanyaan',
+                    $pertanyaan->id_pertanyaan
+                )->get([
+                    'id_bukti_dukung',
+                    'id_pertanyaan',
+                    'nama_bukti_dukung',
+                    'link_bukti_dukung',
+                ])->toArray(),
+
+                'jumlah_bukti' => BuktiDukungLKE::where(
+                    'id_pertanyaan',
+                    $pertanyaan->id_pertanyaan
+                )->count(),
+
+                'jumlah_bukti_terisi' => BuktiDukungLKE::where(
+                    'id_pertanyaan',
+                    $pertanyaan->id_pertanyaan
+                )
+                ->whereNotNull('link_bukti_dukung')
+                ->where('link_bukti_dukung', '!=', '')
+                ->count(),
+
+                'semuaBuktiLengkap' => $semuaBuktiLengkap,
+
+                'pemeriksaanTerakhir' => $pemeriksaanTerakhir,
+            ]);
+        /*
+        |--------------------------------------------------------------------------
+        | TENTUKAN TAHAP
+        |--------------------------------------------------------------------------
+        */
+
+        if (!$semuaBuktiLengkap) {
+
+            $tahap = 'dasar';
+
+        } elseif (!$pemeriksaanTerakhir) {
+
+            $tahap = 'pemeriksaan';
+
+        } elseif (
+            $pemeriksaanTerakhir->status_pemeriksaan === 'sesuai'
+            && is_null($pemeriksaanTerakhir->jawaban)
+        ) {
+
+            $tahap = 'penilaian';
+
+        } elseif (
+            $pemeriksaanTerakhir->status_pemeriksaan === 'sesuai'
+            && !is_null($pemeriksaanTerakhir->jawaban)
+        ) {
+
+            $tahap = 'selesai';
+
+        } else {
 
             /*
             |--------------------------------------------------------------------------
-            | TENTUKAN TAHAP
+            | STATUS PERBAIKAN
             |--------------------------------------------------------------------------
             */
 
-            if (!$isAdminSekretaris) {
+            $tahap = 'pemeriksaan';
+        }
 
-                $tahap = 'dasar';
-
-            } elseif (!$semuaBuktiLengkap) {
-
-                $tahap = 'dasar';
-
-            } elseif (!$pemeriksaanTerakhir) {
-
-                $tahap = 'pemeriksaan';
-
-            } elseif (
-                $pemeriksaanTerakhir->status_pemeriksaan === 'sesuai'
-                && is_null($pemeriksaanTerakhir->jawaban)
-            ) {
-
-                $tahap = 'penilaian';
-
-            } elseif (
-                $pemeriksaanTerakhir->status_pemeriksaan === 'sesuai'
-                && !is_null($pemeriksaanTerakhir->jawaban)
-            ) {
-
-                $tahap = 'selesai';
-
-            } else {
-
-                /*
-                |--------------------------------------------------------------------------
-                | STATUS PERBAIKAN
-                |--------------------------------------------------------------------------
-                */
-
-                $tahap = 'pemeriksaan';
-            }
-
-            return view(
-                'detail-lke',
-                compact(
-                    'pertanyaan',
-                    'tahap',
-                    'semuaBuktiLengkap'
-                )
-            );
+        return view(
+            'detail-lke',
+            compact(
+                'pertanyaan',
+                'tahap',
+                'semuaBuktiLengkap'
+            )
+        );
     }
 
     private function konversiNilai(
@@ -116,9 +140,17 @@ class PertanyaanLKEController extends Controller
     ): float {
 
         $jawaban = strtolower(trim($jawaban));
+        
 
         $kriteria_jawaban = strtolower(
             trim($kriteria_jawaban)
+        );
+
+        // Normalisasi spasi di sekitar "/"
+        $kriteria_jawaban = preg_replace(
+            '/\s*\/\s*/',
+            '/',
+            $kriteria_jawaban
         );
 
         return match ($kriteria_jawaban) {
@@ -241,6 +273,8 @@ class PertanyaanLKEController extends Controller
 
     public function simpanPemeriksaan(Request $request, $id)
     {
+
+        
         $pertanyaan = PertanyaanLKE::with([
             'buktiDukung',
             'pemeriksaanTerakhir',
@@ -316,7 +350,7 @@ class PertanyaanLKEController extends Controller
             */
 
             PemeriksaanLKE::create([
-                'pertanyaan_lke_id' => $pertanyaan->id,
+                'pertanyaan_lke_id' => $pertanyaan->id_pertanyaan,
 
                 'status_pemeriksaan' =>
                     $validated['status_pemeriksaan'],
@@ -332,7 +366,7 @@ class PertanyaanLKEController extends Controller
 
                 'narasi' => null,
 
-                'diperiksa_oleh' => Auth::id(),
+                'diperiksa_oleh' => Auth::user()->id,
 
                 'diperiksa_pada' => now(),
             ]);
@@ -344,7 +378,7 @@ class PertanyaanLKEController extends Controller
             */
 
             $pertanyaan->update([
-                'status_pertanyaan' =>
+                'status_pertanyaan' => 
                     $validated['status_pemeriksaan']
             ]);
 
@@ -363,7 +397,7 @@ class PertanyaanLKEController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        if ($tahap === 'penilaian') {
+        if (in_array($tahap, ['penilaian', 'selesai'])) {
 
             if (!$semuaBuktiLengkap) {
                 throw ValidationException::withMessages([
@@ -377,11 +411,10 @@ class PertanyaanLKEController extends Controller
             | AMBIL PEMERIKSAAN TERAKHIR
             |--------------------------------------------------------------------------
             */
-
             $pemeriksaan =
                 PemeriksaanLKE::where(
                     'pertanyaan_lke_id',
-                    $pertanyaan->id
+                    $pertanyaan->id_pertanyaan
                 )
                 ->latest('diperiksa_pada')
                 ->first();
@@ -408,6 +441,7 @@ class PertanyaanLKEController extends Controller
             |--------------------------------------------------------------------------
             */
 
+
             $validated = $request->validate([
                 'jawaban' => [
                     'required',
@@ -426,7 +460,8 @@ class PertanyaanLKEController extends Controller
             |--------------------------------------------------------------------------
             */
 
-            $jawaban = $validated['jawaban'];
+            $jawaban = strtolower(trim($validated['jawaban']));
+
 
             $nilai = $this->konversiNilai(
                 $jawaban,
@@ -439,9 +474,8 @@ class PertanyaanLKEController extends Controller
             |--------------------------------------------------------------------------
             */
 
-            $bobotPenuh = (float) $pertanyaan->bobot;
 
-            $bobot = $nilai * $bobotPenuh;
+            $persentase = $nilai * 100;
 
             /*
             |--------------------------------------------------------------------------
@@ -458,10 +492,29 @@ class PertanyaanLKEController extends Controller
 
                 'nilai' => $nilai,
 
-                'bobot' => $bobot,
+                'persentase' => $persentase,
 
                 'narasi' => $validated['narasi'],
+
+                'diperiksa_pada' => now(),
             ]);
+
+            // dd([
+            //     'pemeriksaan_id' => $pemeriksaan->id,
+            //     'sebelum' => $pemeriksaan->only([
+            //         'jawaban',
+            //         'nilai',
+            //         'persentase',
+            //         'narasi',
+            //     ]),
+
+            //     'akan_disimpan' => [
+            //         'jawaban' => $jawaban,
+            //         'nilai' => $nilai,
+            //         'persentase' => $persentase,
+            //         'narasi' => $validated['narasi'],
+            //     ],
+            // ]);
 
             /*
             |--------------------------------------------------------------------------
@@ -470,15 +523,14 @@ class PertanyaanLKEController extends Controller
             */
 
             $pertanyaan->update([
-                'nilai_mandiri' => $nilai,
-
-                'bobot_mandiri' => $bobot,
+                'nilai_pertanyaan' => $nilai,
 
                 'status_pertanyaan' => 'dinilai',
             ]);
 
             return redirect()
-                ->route('lke.detail', $pertanyaan->id_pertanyaan)
+                ->route('lke.detail', 
+                        $pertanyaan->id_pertanyaan )
                 ->with(
                     'success',
                     'Penilaian berhasil disimpan.'
@@ -494,118 +546,118 @@ class PertanyaanLKEController extends Controller
         abort(403, 'Tahap proses tidak valid.');
     }
 
-    public function uploadBuktiDukung(Request $request)
-    {
-        $validated = $request->validate([
-            'id_bukti_dukung' => [
-                'required',
-                'exists:bukti_dukung_lke,id_bukti_dukung',
-            ],
+    // public function uploadBuktiDukung(Request $request)
+    // {
+    //     $validated = $request->validate([
+    //         'id_bukti_dukung' => [
+    //             'required',
+    //             'exists:bukti_dukung_lke,id_bukti_dukung',
+    //         ],
 
-            'file' => [
-                'required',
-                'file',
-                'mimes:pdf',
-                'max:5120',
-            ],
-        ]);
+    //         'file' => [
+    //             'required',
+    //             'file',
+    //             'mimes:pdf',
+    //             'max:5120',
+    //         ],
+    //     ]);
 
-        // Ambil data bukti dukung
-        $bukti = BuktiDukungLKE::where(
-            'id_bukti_dukung',
-            $validated['id_bukti_dukung']
-        )->firstOrFail();
-
-
-        // File yang diupload
-        $file = $request->file('file');
+    //     // Ambil data bukti dukung
+    //     $bukti = BuktiDukungLKE::where(
+    //         'id_bukti_dukung',
+    //         $validated['id_bukti_dukung']
+    //     )->firstOrFail();
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | NAMA FILE
-        |--------------------------------------------------------------------------
-        |
-        | Format:
-        | id_bukti_dukung + spasi + nama_bukti_dukung + .pdf
-        |
-        */
-
-        $namaFile =
-            $bukti->id_bukti_dukung .
-            ' ' .
-            $bukti->nama_bukti_dukung_singkat .
-            '.pdf';
+    //     // File yang diupload
+    //     $file = $request->file('file');
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | HAPUS FILE LAMA JIKA REUPLOAD
-        |--------------------------------------------------------------------------
-        */
-    // perbaiki ini nanti pas sambungin gdrive
-        if (!empty($bukti->link)) {
+    //     /*
+    //     |--------------------------------------------------------------------------
+    //     | NAMA FILE
+    //     |--------------------------------------------------------------------------
+    //     |
+    //     | Format:
+    //     | id_bukti_dukung + spasi + nama_bukti_dukung + .pdf
+    //     |
+    //     */
 
-            $fileLama =
-                storage_path(
-                    'app/public/bukti-dukung/' .
-                    $bukti->file
-                );
-
-            if (file_exists($fileLama)) {
-                unlink($fileLama);
-            }
-        }
+    //     $namaFile =
+    //         $bukti->id_bukti_dukung .
+    //         ' ' .
+    //         $bukti->nama_bukti_dukung_singkat .
+    //         '.pdf';
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | SIMPAN FILE
-        |--------------------------------------------------------------------------
-        */
+    //     /*
+    //     |--------------------------------------------------------------------------
+    //     | HAPUS FILE LAMA JIKA REUPLOAD
+    //     |--------------------------------------------------------------------------
+    //     */
+    // // perbaiki ini nanti pas sambungin gdrive
+    //     if (!empty($bukti->link)) {
 
-        $file->storeAs(
-            'bukti-dukung',
-            $namaFile,
-            'public'
-        );
+    //         $fileLama =
+    //             storage_path(
+    //                 'app/public/bukti-dukung/' .
+    //                 $bukti->file
+    //             );
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | SIMPAN NAMA FILE KE DATABASE
-        |--------------------------------------------------------------------------
-        */
-
-        $bukti->link_bukti_dukung = $namaFile;
-
-        $bukti->save();
+    //         if (file_exists($fileLama)) {
+    //             unlink($fileLama);
+    //         }
+    //     }
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | RESPONSE AJAX
-        |--------------------------------------------------------------------------
-        */
+    //     /*
+    //     |--------------------------------------------------------------------------
+    //     | SIMPAN FILE
+    //     |--------------------------------------------------------------------------
+    //     */
 
-        return response()->json([
-            'success' => true,
+    //     $file->storeAs(
+    //         'bukti-dukung',
+    //         $namaFile,
+    //         'public'
+    //     );
 
-            'message' =>
-                'Bukti dukung berhasil diupload.',
 
-            'id_bukti_dukung' =>
-                $bukti->id_bukti_dukung,
+    //     /*
+    //     |--------------------------------------------------------------------------
+    //     | SIMPAN NAMA FILE KE DATABASE
+    //     |--------------------------------------------------------------------------
+    //     */
 
-            'file_name' =>
-                $namaFile,
+    //     $bukti->link_bukti_dukung = $namaFile;
 
-            'file_url' =>
-                asset(
-                    'storage/bukti-dukung/' . $namaFile
-                ),
-        ]);
-    }
+    //     $bukti->save();
+
+
+    //     /*
+    //     |--------------------------------------------------------------------------
+    //     | RESPONSE AJAX
+    //     |--------------------------------------------------------------------------
+    //     */
+
+    //     return response()->json([
+    //         'success' => true,
+
+    //         'message' =>
+    //             'Bukti dukung berhasil diupload.',
+
+    //         'id_bukti_dukung' =>
+    //             $bukti->id_bukti_dukung,
+
+    //         'file_name' =>
+    //             $namaFile,
+
+    //         'file_url' =>
+    //             asset(
+    //                 'storage/bukti-dukung/' . $namaFile
+    //             ),
+    //     ]);
+    // }
 
     // menentukan tanggal
     private function getTanggalWaktu($waktu)
@@ -684,26 +736,15 @@ class PertanyaanLKEController extends Controller
 
     private function getStatusPertanyaan($pertanyaan)
     {
-        /*
-        |--------------------------------------------------------------------------
-        | 1. SUDAH DINILAI
-        |--------------------------------------------------------------------------
-        */
-
-        if (!is_null($pertanyaan->nilai_mandiri)) {
+        // 1. Sudah dinilai
+        if (!is_null($pertanyaan->nilai_pertanyaan)) {
             return 'dinilai';
         }
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | 2. CEK HASIL PEMERIKSAAN TERAKHIR
-        |--------------------------------------------------------------------------
-        */
-
+        // 2. Cek pemeriksaan terakhir
         $pemeriksaan = PemeriksaanLKE::where(
             'pertanyaan_lke_id',
-            $pertanyaan->id
+            $pertanyaan->id_pertanyaan
         )
         ->latest('diperiksa_pada')
         ->first();
@@ -719,31 +760,17 @@ class PertanyaanLKEController extends Controller
             }
         }
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | 3. CEK KELENGKAPAN BUKTI DUKUNG
-        |--------------------------------------------------------------------------
-        */
-
+        // 3. Bukti dukung lengkap
         if ($this->buktiDukungLengkap($pertanyaan)) {
             return 'pemeriksaan';
         }
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | 4. BUKTI BELUM LENGKAP
-        |    CEK APAKAH SUDAH TERLAMBAT
-        |--------------------------------------------------------------------------
-        */
-
+        // 4. Terlambat
         $tanggalWaktu = $this->getTanggalWaktu($pertanyaan->waktu);
 
         if (!empty($tanggalWaktu)) {
 
             $tanggalSekarang = now()->startOfDay();
-
             $tanggalTarget = $tanggalWaktu[0];
 
             if ($tanggalSekarang->gt($tanggalTarget)) {
@@ -751,13 +778,7 @@ class PertanyaanLKEController extends Controller
             }
         }
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | 5. DEFAULT
-        |--------------------------------------------------------------------------
-        */
-
+        // 5. Default
         return 'belum';
     }
 

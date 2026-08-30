@@ -25,6 +25,9 @@ return new class extends Migration
             $table->string('link_bukti_dukung')->nullable();
             $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
 
+            $table->timestamps('time_created')->nullable();
+            $table->timestamps('time_updated')->nullable();
+
 
             $table->timestamps();
         });

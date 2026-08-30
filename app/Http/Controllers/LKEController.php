@@ -7,12 +7,21 @@ use App\Models\PemeriksaanLKE;
 use App\Models\PertanyaanLKE;
 use App\Models\RiwayatPenilaianLKE;
 use App\Models\SubPilarLKE;
+use App\Services\PenilaianLKEService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class LkeController extends Controller
 {
+    protected $penilaianService;
+
+    public function __construct(
+        PenilaianLKEService $penilaianService
+    ) {
+        $this->penilaianService = $penilaianService;
+    }
+
     public function index()
     {
         $subpilar = SubPilarLKE::query()
@@ -26,6 +35,40 @@ class LkeController extends Controller
             ->orderBy('id_pertanyaan')
             ->get();
 
+        
+        // nilai mandiri
+        $nilaiMandiri = $subpilar->sum(function ($subpilarItem) use ($pertanyaan) {
+
+            $pertanyaanSubpilar = $pertanyaan
+                ->where('id_subpilar', $subpilarItem->id_subpilar);
+
+            $nilaiAvg = $pertanyaanSubpilar
+                ->map(fn ($p) => $p->nilai_pertanyaan ?? 0)
+                ->avg();
+
+            return $nilaiAvg * ($subpilarItem->bobot ?? 0);
+        });
+
+        $nilaiTotal = $this->penilaianService
+            ->hitungNilaiMandiri(
+                $subpilar,
+                $pertanyaan
+            );
+
+        $nilaiPengungkit = $this->penilaianService
+            ->hitungPerAspek(
+                $subpilar,
+                $pertanyaan,
+                'PENGUNGKIT'
+            );
+
+        $nilaiHasil = $this->penilaianService
+            ->hitungPerAspek(
+                $subpilar,
+                $pertanyaan,
+                'HASIL'
+            );
+        
         /*
         |--------------------------------------------------------------------------
         | UPDATE STATUS PERTANYAAN OTOMATIS
@@ -42,8 +85,7 @@ class LkeController extends Controller
                     'status_pertanyaan' => $statusBaru,
                 ]);
 
-                // Pastikan object yang dikirim ke Blade
-                // menggunakan status terbaru
+                // penting: update object yang sedang ada di collection
                 $item->status_pertanyaan = $statusBaru;
             }
         }
@@ -175,6 +217,7 @@ class LkeController extends Controller
             'subpilar',
             'pertanyaan',
             'periode',
+            'nilaiMandiri',
             'riwayatPenilaian',
             'riwayatPerSubpilar',
             'totalBuktiDukung',
@@ -209,17 +252,14 @@ class LkeController extends Controller
             $pemeriksaanTerakhir =
                 $pertanyaan->pemeriksaanTerakhir;
 
+
             /*
             |--------------------------------------------------------------------------
             | TENTUKAN TAHAP
             |--------------------------------------------------------------------------
             */
 
-            if (!$isAdminSekretaris) {
-
-                $tahap = 'dasar';
-
-            } elseif (!$semuaBuktiLengkap) {
+            if (!$semuaBuktiLengkap) {
 
                 $tahap = 'dasar';
 
@@ -456,110 +496,50 @@ class LkeController extends Controller
 
     private function getStatusPertanyaan($pertanyaan)
     {
-        /*
-        |--------------------------------------------------------------------------
-        | 1. CEK PEMERIKSAAN TERAKHIR
-        |--------------------------------------------------------------------------
-        */
 
+        // 1. Sudah dinilai
+        if (!is_null($pertanyaan->nilai_pertanyaan)) {
+            return 'dinilai';
+        }
+
+        // 2. Cek pemeriksaan terakhir
         $pemeriksaan = PemeriksaanLKE::where(
             'pertanyaan_lke_id',
-            $pertanyaan->id
+            $pertanyaan->id_pertanyaan
         )
-            ->latest('diperiksa_pada')
-            ->first();
+        ->latest('id')
+        ->first();
 
         if ($pemeriksaan) {
 
-            /*
-            | Pemeriksaan sesuai
-            */
-
-            if (
-                $pemeriksaan->status_pemeriksaan
-                === 'sesuai'
-            ) {
+            if ($pemeriksaan->status_pemeriksaan === 'sesuai') {
                 return 'sesuai';
             }
 
-            /*
-            | Pemeriksaan membutuhkan perbaikan
-            */
-
-            if (
-                $pemeriksaan->status_pemeriksaan
-                === 'perbaikan'
-            ) {
+            if ($pemeriksaan->status_pemeriksaan === 'perbaikan') {
                 return 'perbaikan';
             }
         }
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | 2. SUDAH DINILAI
-        |--------------------------------------------------------------------------
-        */
-
-        if (
-            !is_null(
-                $pertanyaan->nilai_mandiri
-            )
-        ) {
-            return 'dinilai';
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | 3. BUKTI DUKUNG LENGKAP
-        |--------------------------------------------------------------------------
-        */
-
-        if (
-            $this->buktiDukungLengkap(
-                $pertanyaan
-            )
-        ) {
+        // 3. Bukti dukung lengkap
+        if ($this->buktiDukungLengkap($pertanyaan)) {
             return 'pemeriksaan';
         }
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | 4. CEK KETERLAMBATAN
-        |--------------------------------------------------------------------------
-        */
-
-        $tanggalWaktu = $this->getTanggalWaktu(
-            $pertanyaan->waktu
-        );
+        // 4. Terlambat
+        $tanggalWaktu = $this->getTanggalWaktu($pertanyaan->waktu);
 
         if (!empty($tanggalWaktu)) {
 
-            $tanggalSekarang = now()
-                ->startOfDay();
+            $tanggalSekarang = now()->startOfDay();
+            $tanggalTarget = $tanggalWaktu[0];
 
-            $tanggalTarget = $tanggalWaktu[0]
-                ->copy()
-                ->startOfDay();
-
-            if (
-                $tanggalSekarang->gt(
-                    $tanggalTarget
-                )
-            ) {
+            if ($tanggalSekarang->gt($tanggalTarget)) {
                 return 'terlambat';
             }
         }
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | 5. DEFAULT
-        |--------------------------------------------------------------------------
-        */
-
+        // 5. Default
         return 'belum';
     }
 

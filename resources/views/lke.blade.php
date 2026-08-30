@@ -89,11 +89,11 @@
                         <div class="rounded-xl border border-slate-200 bg-white px-4 py-3">
 
                             <div class="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-                                Nilai Mandiri
+                                Bobot Nilai Mandiri
                             </div>
 
                             <div class="mt-1 text-lg font-semibold text-slate-900">
-                                {{ number_format($riwayatPenilaian->sum('bobot_mandiri'), 2) }}
+                                {{ number_format($nilaiMandiri, 2) }}
                             </div>
 
                         </div>
@@ -261,7 +261,7 @@
                                         </span>
 
                                         <span class="ml-1 text-xs font-semibold text-white">
-                                            {{ number_format($riwayatPenilaian->sum('bobot_mandiri'), 2) }} 
+                                            {{ number_format($pertanyaan->sum('bobot_pertanyaan'), 2) }} 
                                             {{-- ganti dengan nilai --}}
                                         </span>
 
@@ -401,6 +401,11 @@
                                                     })->values();
 
                                                     $riwayat = $riwayatPerSubpilar[$subpilarItem->id_subpilar] ?? null;
+
+                                                    $nilaiAvg = $subpilarItem->pertanyaan
+                                                        ->map(fn ($p) => $p->nilai_pertanyaan ?? 0)
+                                                        ->avg();
+                                                    $bobotNilai = $nilaiAvg * $subpilarItem->bobot;
                                                 @endphp
 
                                                 <tr
@@ -429,9 +434,9 @@
                                                                 bg-lime-50 px-2 py-1 text-[8px] ml-1
                                                                 font-bold text-lime-700">
                                                             Bobot Nilai: 
-                                                            @if (($riwayat->bobot ?? 0) > 0)
+                                                            @if (($nilaiAvg) > 0)
                                                                 {{ number_format(
-                                                                    (($riwayat->nilai_mandiri ?? 0) * $riwayat->bobot),
+                                                                    ($bobotNilai),
                                                                     2
                                                                 ) }}
                                                             @else 0.00
@@ -443,7 +448,7 @@
                                                                 bg-violet-50 px-2 py-1 text-[8px] ml-1
                                                                 font-bold text-violet-700 ">
                                                             Persentase:  
-                                                                {{ number_format(($riwayat->nilai_mandiri ?? 0) * 100, 2) }}%                               
+                                                                {{ number_format($nilaiAvg * 100, 2) }}%                               
                                                         </span>
 
 
@@ -507,11 +512,13 @@
 
                                                         </td>
 
-
+                                                        @php
+                                                            $status = $item->status_pertanyaan;
+                                                        @endphp
                                                         {{-- Status --}}
                                                         <td class="px-3 py-4 text-center">
 
-                                                            @if ($item->status_pertanyaan === 'pemeriksaan')
+                                                            @if ($status === 'pemeriksaan')
 
                                                                 <span class="inline-flex items-center gap-1.5 rounded-full
                                                                             border border-blue-100 px-2.5 py-1.5
@@ -521,7 +528,7 @@
                                                                     Pemeriksaan
                                                                 </span>
 
-                                                            @elseif ($item->status_pertanyaan === 'belum')
+                                                            @elseif ($status === 'belum')
 
                                                                 <span class="inline-flex items-center gap-1.5 rounded-full
                                                                             border border-slate-100 px-2.5 py-1.5
@@ -531,7 +538,7 @@
                                                                     Belum
                                                                 </span>
 
-                                                            @elseif ($item->status_pertanyaan === 'perbaikan')
+                                                            @elseif ($status === 'perbaikan')
 
                                                                 <span class="inline-flex items-center gap-1.5 rounded-full
                                                                             border border-amber-100 px-2.5 py-1.5
@@ -541,7 +548,7 @@
                                                                     Perbaikan
                                                                 </span>
 
-                                                            @elseif ($item->status_pertanyaan === 'sesuai')
+                                                            @elseif ($status === 'sesuai')
 
                                                                 <span class="inline-flex items-center gap-1.5 rounded-full
                                                                             border border-indigo-100 px-2.5 py-1.5
@@ -551,7 +558,7 @@
                                                                     Sesuai
                                                                 </span>
 
-                                                            @elseif ($item->status_pertanyaan === 'dinilai')
+                                                            @elseif ($status === 'dinilai')
 
                                                                 <span class="inline-flex items-center gap-1.5 rounded-full
                                                                             border border-emerald-100 px-2.5 py-1.5
@@ -561,7 +568,7 @@
                                                                     Dinilai
                                                                 </span>
 
-                                                            @elseif ($item->status_pertanyaan === 'terlambat')
+                                                            @elseif ($status === 'terlambat')
 
                                                                 <span class="inline-flex items-center gap-1.5 rounded-full
                                                                             border border-red-100 px-2.5 py-1.5
@@ -571,7 +578,7 @@
                                                                     Terlambat
                                                                 </span>
 
-                                                            @else
+                                                            {{-- @else
 
                                                                 <span class="inline-flex items-center gap-1.5 rounded-full
                                                                             border border-slate-100 px-2.5 py-1.5
@@ -579,7 +586,7 @@
                                                                             transition">
                                                                     <i data-lucide="circle-help" class="h-3.5 w-3.5"></i>
                                                                     Tidak diketahui
-                                                                </span>
+                                                                </span> --}}
 
                                                             @endif
 
@@ -608,7 +615,7 @@
                                                         <td class="px-3 py-4 text-center">
 
                                                             <div class="text-sm font-semibold text-slate-900">
-                                                                {{ $item -> nilai_pertanyaan }}
+                                                                {{ $item -> nilai_pertanyaan ?? '0.00'}}
                                                             </div>
                                                         </td>
 

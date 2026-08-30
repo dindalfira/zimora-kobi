@@ -27,7 +27,7 @@
 
         @include('components.header')
 
-        <section class="p-6">
+        <section class="p-3">
 
             @yield('content')
 
@@ -39,13 +39,21 @@
 
     @stack('scripts') 
 
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            lucide.createIcons();
+        });
+    </script>
+
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
         function confirmLogout() {
             Swal.fire({
                 title: 'Konfirmasi Logout',
-                text: 'Apakah Anda yakin ingin keluar dari sistem?',
+                text: 'Apakah Anda yakin ingin keluar?',
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonText: 'Ya',

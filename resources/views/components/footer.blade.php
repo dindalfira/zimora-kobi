@@ -1,4 +1,4 @@
-<footer class="border-t border-slate-200 bg-white">
+<footer class="shrink border-t border-slate-200 bg-white">
     <div class="flex flex-col items-center justify-between gap-2 px-6 py-4
                 text-xs text-slate-400
                 sm:flex-row">

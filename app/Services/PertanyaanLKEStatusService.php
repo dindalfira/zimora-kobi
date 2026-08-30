@@ -20,7 +20,7 @@ class PertanyaanLkeStatusService
         |--------------------------------------------------------------------------
         */
 
-        if (!is_null($pertanyaan->nilai_mandiri)) {
+        if (!is_null($pertanyaan->nilai_pertanyaan)) {
             return 'dinilai';
         }
 
@@ -33,9 +33,9 @@ class PertanyaanLkeStatusService
 
         $pemeriksaan = PemeriksaanLKE::where(
             'pertanyaan_lke_id',
-            $pertanyaan->id
+            $pertanyaan->id_pertanyaan
         )
-        ->latest('diperiksa_pada')
+        ->latest('id')
         ->first();
 
         if ($pemeriksaan) {

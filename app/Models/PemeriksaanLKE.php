@@ -15,14 +15,15 @@ class PemeriksaanLKE extends Model
         'pertanyaan_lke_id',
         'catatan_pemeriksaan',
         'status_pemeriksaan',
-        'kondisi',
+        'jawaban',
         'narasi',
         'nilai',
         'persentase',
+        'diperiksa_oleh',
+        'diperiksa_pada',
     ];
 
     protected $casts = [
-        'kondisi' => 'integer',
         'nilai' => 'decimal:2',
         'persentase' => 'decimal:2',
     ];
@@ -31,7 +32,8 @@ class PemeriksaanLKE extends Model
     {
         return $this->belongsTo(
             PertanyaanLKE::class,
-            'pertanyaan_lke_id'
+            'pertanyaan_lke_id',
+            'id_pertanyaan'
         );
     }
 }

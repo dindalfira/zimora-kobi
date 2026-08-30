@@ -12,11 +12,11 @@
         </div>
 
         <div>
-            <div class="text-xl font-bold leading-6 text-white">
+            <div class="text-sm font-bold leading-6 text-white">
                 ZI-MORA KOBI
             </div>
 
-            <div class="text-xs text-white/50">
+            <div class="text-[10px] text-white/50">
                 Monitoring Rencana Aksi Zona Integritas BPS Kota Bima
             </div>
         </div>
@@ -81,16 +81,16 @@
 
         {{-- Pengaturan --}}
         @if(Auth::user()->role === 'admin')
-        <a href="{{ route('pengaturan') }}"
-           class="flex items-center rounded-lg px-4 py-2.5 text-xs font-bold tracking-wide transition
-           {{ request()->routeIs('pengaturan')
-                ? 'bg-sky-700 text-white'
-                : 'text-white/70 hover:bg-white/10 hover:text-white' }}">
+            <a href="{{ route('pengaturan') }}"
+            class="flex items-center rounded-lg px-4 py-2.5 text-xs font-bold tracking-wide transition
+            {{ request()->routeIs('pengaturan')
+                    ? 'bg-sky-700 text-white'
+                    : 'text-white/70 hover:bg-white/10 hover:text-white' }}">
 
-            <i data-lucide="settings" class="mr-2 h-4 w-4"></i>
+                <i data-lucide="settings" class="mr-2 h-4 w-4"></i>
 
-            Pengaturan
-        </a>
+                Pengaturan
+            </a>
         @endif
 
     </nav>

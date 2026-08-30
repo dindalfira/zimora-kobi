@@ -36,6 +36,8 @@ return new class extends Migration
             $table->string('status_pelaksanaan', 50)
                 ->nullable();
 
+            $table->timestamps('time_updated');
+
             $table->timestamps();
 
             // Mencegah periode yang sama dibuat dua kali

@@ -11,6 +11,9 @@ class BuktiDukungLKE extends Model
     protected $fillable = [
         'status_bukti_dukung',
         'link_bukti_dukung',
+        'user_id',
+        'time_created',
+        'time_updated'
     ];
 
     public function pertanyaan()
@@ -21,4 +24,5 @@ class BuktiDukungLKE extends Model
             'id_pertanyaan'
         );
     }
+
 }

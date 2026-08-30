@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\BuktiDukungLKE;
 use App\Models\PelaksanaanKegiatan;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 
 class UploadController extends Controller
@@ -48,8 +49,9 @@ class UploadController extends Controller
             $bukti->nama_bukti_dukung_singkat . '.' .
             $file->getClientOriginalExtension();
 
-        $path = $file->store(
+        $path = $file->storeAs(
             'bukti-dukung',
+            $namaFile,
             'public'
         );
 
@@ -59,10 +61,20 @@ class UploadController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $bukti->update([
-            'file' => $namaFile,
+        $isUpload = empty($bukti->time_updated);
+
+        $updateData = [
             'link_bukti_dukung' => $path,
-        ]);
+            'status_bukti_dukung' => 'sudah',
+            'user_id' => Auth::user()->id,
+            'time_updated' => now()
+        ];
+
+        if ($isUpload) {
+            $updateData['time_uploaded'] = now();
+        }
+
+        $bukti->update($updateData);
 
         /*
         |--------------------------------------------------------------------------
@@ -74,8 +86,10 @@ class UploadController extends Controller
             'success' => true,
             'message' => 'File berhasil diupload.',
             'id_bukti_dukung' => $bukti->id_bukti_dukung,
-            'file_name' => $bukti->file,
+            'file_name' => $namaFile,
             'file_url' => asset('storage/' . $bukti->link_bukti_dukung),
+            'time_uploaded' => $bukti->time_uploaded,
+            'time_updated' => $bukti->time_updated,
         ]);
     }
     // public function uploadBuktiDukung(Request $request)
@@ -197,13 +211,14 @@ class UploadController extends Controller
         // Simpan path ke database
         $pelaksanaan->update([
             'dokumentasi' => $path,
-            'status_pelaksanaan' => 'selesai'
+            'status_pelaksanaan' => 'selesai',
+            'time_updated' => now(),
         ]);
 
-        return back()->with(
-            'success',
-            'Dokumentasi kegiatan berhasil diupload.'
-        );
+        return back()->with([
+            'success' => 'Dokumentasi kegiatan berhasil diupload.',
+            'time_updated' => $pelaksanaan->time_updated,
+        ]);
     }
 
     public function downloadBuktiDukung($id)
@@ -248,6 +263,52 @@ class UploadController extends Controller
             $path,
             basename($path)
         );
+    }
+
+    public function deleteBuktiDukung($id)
+    {
+        $bukti = BuktiDukungLKE::findOrFail($id);
+
+        if (!$bukti->link_bukti_dukung) {
+            return back()->with('error', 'Bukti Dukung tidak ditemukan.');
+        }
+
+        // Hapus file dari storage
+        if (Storage::disk('public')->exists($bukti->link_bukti_dukung)) {
+            Storage::disk('public')->delete($bukti->link_bukti_dukung);
+        }
+
+        // Kosongkan kolom link_bukti_dukung di database
+        $bukti->update([
+            'link_bukti_dukung' => null,
+            'status_bukti_dukung' => 'belum',
+            'user_id' => null,
+            'time_updated' => null,
+        ]);
+
+        return back()->with('success', 'Bukti Dukung berhasil dihapus.');
+    }
+
+    public function deleteDokumentasi($id)
+    {
+        $pelaksanaan = PelaksanaanKegiatan::findOrFail($id);
+
+        if (!$pelaksanaan->dokumentasi) {
+            return back()->with('error', 'Dokumentasi tidak ditemukan.');
+        }
+
+        // Hapus file dari storage
+        if (Storage::disk('public')->exists($pelaksanaan->dokumentasi)) {
+            Storage::disk('public')->delete($pelaksanaan->dokumentasi);
+        }
+
+        // Kosongkan kolom dokumentasi di database
+        $pelaksanaan->update([
+            'dokumentasi' => null,
+            'time_updated' => null,
+        ]);
+
+        return back()->with('success', 'Dokumentasi berhasil dihapus.');
     }
 
 }
