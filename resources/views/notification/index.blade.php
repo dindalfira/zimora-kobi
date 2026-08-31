@@ -4,7 +4,7 @@
 
 @section('content')
 
-<div class="space-y-5 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+<div class="space-y-5 rounded-xl border border-slate-200 bg-white p-5 shadow-sm h-[720px]">
 
     {{-- =========================================================
         HEADER

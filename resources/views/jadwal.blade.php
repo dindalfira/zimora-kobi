@@ -69,7 +69,7 @@
         </div>
 
         <div class="flex items-center gap-2 text-xs text-slate-500">
-            <span class="h-2.5 w-2.5 rounded-full bg-red-950"></span>
+            <span class="h-2.5 w-2.5 rounded-full bg-red-700"></span>
             Terlambat
         </div>
 
@@ -180,13 +180,14 @@ function calendarApp() {
         search: '',
 
         days: [
+            'MIN',
             'SEN',
             'SEL',
             'RAB',
             'KAM',
             'JUM',
             'SAB',
-            'MIN'
+            
         ],
 
 activities: {{ Js::from(
@@ -233,9 +234,6 @@ activities: {{ Js::from(
             const firstDay = new Date(year, month, 1);
 
             let startDay = firstDay.getDay();
-
-            // Minggu = 0 → ubah agar Senin menjadi awal minggu
-            startDay = startDay === 0 ? 6 : startDay - 1;
 
             const daysInMonth = new Date(
                 year,

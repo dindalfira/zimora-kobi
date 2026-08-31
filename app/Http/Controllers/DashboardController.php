@@ -47,6 +47,17 @@ class DashboardController extends Controller
                 'HASIL'
             );
 
+         /*
+        |--------------------------------------------------------------------------
+        | DATA BOBOT NILAI PILAR
+        |--------------------------------------------------------------------------
+        */
+        $nilaiPerPilar = $this->penilaianService
+            ->hitungNilaiPerPilar(
+                $subpilar,
+                $pertanyaan
+            );
+
         /*
         |--------------------------------------------------------------------------
         | DATA PERTANYAAN LKE
@@ -97,58 +108,6 @@ class DashboardController extends Controller
 
         $totalSubPilar = SubPilarLKE::count();
 
-
-        // /*
-        // |--------------------------------------------------------------------------
-        // | NILAI MANDIRI
-        // |--------------------------------------------------------------------------
-        // */
-
-        // $periode = now()->year;
-
-        // $riwayatPenilaian = RiwayatPenilaianLKE::with('subpilar')
-        //     ->where('periode', $periode)
-        //     ->get();
-
-
-        // /*
-        // |--------------------------------------------------------------------------
-        // | NILAI TOTAL
-        // |--------------------------------------------------------------------------
-        // */
-
-        // $nilaiTotal = $riwayatPenilaian->sum('bobot_mandiri');
-
-
-        // /*
-        // |--------------------------------------------------------------------------
-        // | NILAI ASPEK PENGUNGKIT
-        // |--------------------------------------------------------------------------
-        // */
-
-        // $nilaiPengungkit = $riwayatPenilaian
-        //     ->filter(function ($item) {
-        //         return optional($item->subpilar)->nama_aspek === 'Pengungkit';
-        //     })
-        //     ->sum('bobot_mandiri');
-
-
-        // /*
-        // |--------------------------------------------------------------------------
-        // | NILAI ASPEK HASIL
-        // |--------------------------------------------------------------------------
-        // */
-
-        // $nilaiHasil = $riwayatPenilaian
-        //     ->filter(function ($item) {
-        //         return optional($item->subpilar)->nama_aspek === 'Hasil';
-        //     })
-        //     ->sum('bobot_mandiri');
-
-
-        // $nilaiPengungkit = round($nilaiPengungkit, 2);
-        // $nilaiHasil = round($nilaiHasil, 2);
-        // $nilaiTotal = round($nilaiTotal, 2);
 
         /*
         |--------------------------------------------------------------------------
@@ -201,10 +160,6 @@ class DashboardController extends Controller
         | DATA NILAI PER PILAR
         |--------------------------------------------------------------------------
         */
-
-        $nilaiPerPilar = [];
-
-        $bobotPerPilar = [];
 
 
         foreach ($pilars as $pilar) {
@@ -293,88 +248,8 @@ class DashboardController extends Controller
 
             $kesesuaianPerPilar[] = round($kesesuaian, 2);
 
-
-            /*
-            |--------------------------------------------------------------------------
-            | 3. NILAI PER PILAR
-            |
-            | Setiap subpilar:
-            |
-            |   nilai_mandiri = AVG(nilai_pertanyaan)
-            |
-            |   bobot_mandiri = nilai_mandiri × bobot_subpilar
-            |
-            | Kemudian seluruh bobot_mandiri dalam Pilar dijumlahkan.
-            |--------------------------------------------------------------------------
-            */
-
-            $bobotMaksimal = $subpilarPilar
-                ->sum('bobot');
-
-            $nilaiBobotPilar = 0;
-
-            $dataSubpilar = [];
-
-            foreach ($subpilarPilar as $sp) {
-
-                $pertanyaanSubpilar = $pertanyaanLKE
-                    ->where('id_subpilar', $sp->id_subpilar);
-
-                $pertanyaanDinilai = $pertanyaanSubpilar
-                    ->whereNotNull('nilai_pertanyaan');
-
-                if ($pertanyaanDinilai->isEmpty()) {
-                    continue;
-                }
-
-                $nilaiMandiri = $pertanyaanDinilai
-                    ->avg('nilai_pertanyaan');
-
-                $bobotMandiri = $nilaiMandiri * $sp->bobot;
-
-                $nilaiBobotPilar += $bobotMandiri;
-
-                $dataSubpilar[] = [
-                    'id_subpilar' => $sp->id_subpilar,
-                    'nama_subpilar' => $sp->subpilar,
-                    'bobot' => $sp->bobot,
-                    'nilai_pertanyaan' => $pertanyaanDinilai
-                        ->pluck('nilai_pertanyaan')
-                        ->toArray(),
-                    'avg' => $nilaiMandiri,
-                    'bobot_mandiri' => $bobotMandiri,
-                ];
-            }
-
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | Persentase nilai Pilar
-            |--------------------------------------------------------------------------
-            */
-
-            $persentaseNilaiPilar = $bobotMaksimal > 0
-                ? ($nilaiBobotPilar / $bobotMaksimal) * 100
-                : 0;
-
-
-            $nilaiPerPilar[] = round(
-                $persentaseNilaiPilar,
-                2
-            );
-
-            $bobotPerPilar[] = round(
-                $bobotMaksimal,
-                2
-            );
         }
 
-        // dd([
-        //     'bobot mandiri' => $nilaiBobotPilar,
-        //     'bobot max' => $bobotMaksimal
-
-        // ]);
 
         $pertanyaanBelum = (int) $statusPertanyaan->get('belum', 0);
         $pertanyaanPemeriksaan = (int) $statusPertanyaan->get('pemeriksaan', 0);
@@ -440,6 +315,7 @@ class DashboardController extends Controller
             'nilaiTotal',
             'nilaiPengungkit',
             'nilaiHasil',
+            'nilaiPerPilar',
 
             // 'periode',
 
@@ -448,8 +324,8 @@ class DashboardController extends Controller
             'namapilars',
             'pemenuhanPerPilar',
             'kesesuaianPerPilar',
-            'nilaiPerPilar',
-            'bobotPerPilar',
+            // 'nilaiPerPilar',
+            // 'bobotPerPilar',
 
             'statusKegiatan',
             'statusKegChart'

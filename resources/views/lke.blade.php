@@ -179,7 +179,6 @@
                         PILAR / SECTION HEADER
                     ================================================== --}}
                 @foreach ($subPilar as $kodePilar => $itemsPilar)
-
                     @php
                         $firstPilar = $itemsPilar->first();
                         
@@ -197,8 +196,6 @@
                          // Total bukti dukung untuk Pilar ini
                         $totalBuktiPilar = $pertanyaanPilar->sum('jumlah_bukti_dukung');
                     @endphp
-
-
                         <details open class="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm ">
 
                             <summary
@@ -261,8 +258,9 @@
                                         </span>
 
                                         <span class="ml-1 text-xs font-semibold text-white">
-                                            {{ number_format($pertanyaan->sum('bobot_pertanyaan'), 2) }} 
+                                            {{ number_format($nilaiPerPilar[$kodePilar] ?? 0, 2) }} 
                                             {{-- ganti dengan nilai --}}
+                                            {{-- 0.92 --}}
                                         </span>
 
                                     </div>

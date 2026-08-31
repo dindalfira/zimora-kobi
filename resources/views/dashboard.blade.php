@@ -1040,6 +1040,8 @@
             .getElementById('nilaiChart')
             .getContext('2d');
 
+        const nilaiPerPilar = @json($nilaiPerPilar);
+
         new Chart(nilaiCtx, {
 
             type: 'bar',
@@ -1052,7 +1054,7 @@
 
                     label: '% Nilai',
 
-                    data: @json($nilaiPerPilar),
+                    data: nilaiPerPilar.map(item => item.persentase),
 
                     backgroundColor: '#0284c7',
 

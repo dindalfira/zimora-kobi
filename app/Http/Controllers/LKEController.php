@@ -36,7 +36,11 @@ class LkeController extends Controller
             ->get();
 
         
-        // nilai mandiri
+        /*
+        |--------------------------------------------------------------------------
+        | NILAI KESELURUHAN
+        |--------------------------------------------------------------------------
+        */
         $nilaiMandiri = $subpilar->sum(function ($subpilarItem) use ($pertanyaan) {
 
             $pertanyaanSubpilar = $pertanyaan
@@ -68,7 +72,56 @@ class LkeController extends Controller
                 $pertanyaan,
                 'HASIL'
             );
-        
+
+            /*
+            |--------------------------------------------------------------------------
+            | NILAI SUBPILAR
+            |--------------------------------------------------------------------------
+            */
+
+            $nilaiPerSubpilar = $subpilar->mapWithKeys(function ($subpilarItem) use ($pertanyaan) {
+
+                $pertanyaanSubpilar = $pertanyaan
+                    ->where('id_subpilar', $subpilarItem->id_subpilar);
+
+                $nilaiAvg = $pertanyaanSubpilar
+                    ->map(fn ($p) => $p->nilai_pertanyaan ?? 0)
+                    ->avg();
+
+                $nilaiSubpilar = $nilaiAvg * ($subpilarItem->bobot ?? 0);
+
+                return [
+                    $subpilarItem->id_subpilar => $nilaiSubpilar,
+                ];
+            });
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | NILAI PILAR
+            |--------------------------------------------------------------------------
+            */
+
+            $nilaiPerPilar = $subpilar
+                ->groupBy('pilar')
+                ->map(function ($subpilarsPilar) use ($nilaiPerSubpilar) {
+
+                    return $subpilarsPilar->sum(function ($subpilarItem) use ($nilaiPerSubpilar) {
+
+                        return $nilaiPerSubpilar[
+                            $subpilarItem->id_subpilar
+                        ] ?? 0;
+                    });
+                });
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | NILAI TOTAL
+            |--------------------------------------------------------------------------
+            */
+
+            $nilaiTotal = $nilaiPerPilar->sum();        
         /*
         |--------------------------------------------------------------------------
         | UPDATE STATUS PERTANYAAN OTOMATIS
@@ -218,6 +271,8 @@ class LkeController extends Controller
             'pertanyaan',
             'periode',
             'nilaiMandiri',
+            'nilaiPerPilar',
+            'nilaiPerSubpilar',
             'riwayatPenilaian',
             'riwayatPerSubpilar',
             'totalBuktiDukung',
