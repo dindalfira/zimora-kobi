@@ -31,7 +31,14 @@
             class="flex h-7 w-7 items-center justify-center rounded-lg
                 border border-slate-200 text-slate-500 hover:bg-slate-50"
         >
-            <i data-lucide="chevron-left" class="h-4 w-4"></i>
+
+        <svg xmlns="http://www.w3.org/2000/svg" 
+            width="14" height="14" viewBox="0 0 24 24" fill="none" 
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" 
+            class="lucide lucide-chevron-left-icon lucide-chevron-left">
+            <path d="m15 18-6-6 6-6"/>
+        </svg>
+            {{-- <i data-lucide="chevron-left" class="h-4 w-4"></i> --}}
         </button>
 
         <h2
@@ -45,7 +52,13 @@
             class="flex h-7 w-7 items-center justify-center rounded-lg
                 border border-slate-200 text-slate-500 hover:bg-slate-50"
         >
-            <i data-lucide="chevron-right" class="h-4 w-4"></i>
+            {{-- <i data-lucide="chevron-right" class="h-4 w-4"></i> --}}
+            <svg xmlns="http://www.w3.org/2000/svg" 
+                width="14" height="14" viewBox="0 0 24 24" fill="none" 
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" 
+                class="lucide lucide-chevron-right-icon lucide-chevron-right">
+                <path d="m9 18 6-6-6-6"/>
+            </svg>
         </button>
     </div>
 

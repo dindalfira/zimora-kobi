@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\BuktiDukungLKE;
+use App\Models\Notification;
 use App\Models\PelaksanaanKegiatan;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -11,7 +13,7 @@ use Illuminate\Support\Facades\Storage;
 class UploadController extends Controller
 {
     /**
-     * Upload bukti dukung
+     * Upload bukti dukung TEST
      */
     public function uploadBuktiDukung(Request $request)
     {
@@ -45,15 +47,18 @@ class UploadController extends Controller
 
         $file = $request->file('file');
 
-        $namaFile = $bukti->id_bukti_dukung . ' ' .
-            $bukti->nama_bukti_dukung_singkat . '.' .
-            $file->getClientOriginalExtension();
+        $namaFile = $bukti->id_bukti_dukung
+                   . ' '
+                   . $bukti->nama_bukti_dukung_singkat
+                   . '.'
+                   . $file->getClientOriginalExtension();
 
         $path = $file->storeAs(
             'bukti-dukung',
             $namaFile,
             'public'
         );
+
 
         /*
         |--------------------------------------------------------------------------
@@ -75,6 +80,88 @@ class UploadController extends Controller
         }
 
         $bukti->update($updateData);
+
+        /*
+        |--------------------------------------------------------------------------
+        | CEK APAKAH SEMUA BUKTI DUKUNG PERTANYAAN SUDAH LENGKAP
+        |--------------------------------------------------------------------------
+        */
+
+        $pertanyaan = $bukti->pertanyaan;
+
+        if ($pertanyaan) {
+
+            // Ambil semua bukti dukung untuk pertanyaan ini
+            $semuaBukti = BuktiDukungLKE::where(
+                'id_pertanyaan',
+                $pertanyaan->id
+            )->get();
+
+            // Cek apakah SEMUA bukti sudah memiliki file
+            $semuaLengkap = $semuaBukti->every(function ($item) {
+                return !empty($item->link_bukti_dukung);
+            });
+
+            if ($semuaLengkap) {
+
+                /*
+                |--------------------------------------------------------------------------
+                | CEGAH NOTIFIKASI DUPLIKAT
+                |--------------------------------------------------------------------------
+                */
+
+                $sudahAdaNotif = Notification::where(
+                        'id_pertanyaan',
+                        $pertanyaan->id_pertanyaan
+                    )
+                    ->where(
+                        'tipe',
+                        'bukti_lengkap'
+                    )
+                    ->exists();
+
+                if (!$sudahAdaNotif) {
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | KIRIM NOTIFIKASI KE PEMERIKSA
+                    |--------------------------------------------------------------------------
+                    */
+
+                    $pemeriksa = User::where(
+                        'role',
+                        'sekretaris'
+                    )->get();
+
+                    foreach ($pemeriksa as $user) {
+
+                        Notification::create([
+                            'user_id' => $user->id,
+
+                            'tipe' => 'bukti_lengkap',
+
+                            'judul' => 'Bukti Dukung Lengkap',
+
+                            'pesan' => 'Seluruh bukti dukung untuk pertanyaan "' .
+                                ($pertanyaan->id_pertanyaan ?? "") . " " .
+                                ($pertanyaan->nama_pertanyaan ?? 'Pertanyaan LKE') .
+                                '" telah diunggah dan siap diperiksa.',
+
+                            'id_pilar' => $pertanyaan->subPilar->pilar ?? null,
+
+                            'id_pertanyaan' => $pertanyaan->id,
+
+                            'url' => route('lke.detail', $pertanyaan->id_pertanyaan,
+                            ),
+
+                            'dibaca' => false,
+
+                            'dibaca_at' => null,
+                        ]);
+                    }
+                }
+            }
+        }
 
         /*
         |--------------------------------------------------------------------------

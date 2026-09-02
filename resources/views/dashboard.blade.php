@@ -72,8 +72,8 @@
                                     focus:border-sky-500 focus:ring-2 focus:ring-sky-100">
 
                             <option value="">Semua Aspek</option>
-                            <option value="Pengungkit">Pengungkit</option>
-                            <option value="Hasil">Hasil</option>
+                            <option value="A">Pengungkit</option>
+                            <option value="B">Hasil</option>
 
                         </select>
 
@@ -102,8 +102,8 @@
                                     focus:border-sky-500 focus:ring-2 focus:ring-sky-100">
 
                                     <option value="">Semua Area</option>
-                                    <option value="Pemenuhan">Pemenuhan</option>
-                                    <option value="Reform">Reform</option>
+                                    <option value="I">Pemenuhan</option>
+                                    <option value="II">Reform</option>
 
                         </select>
 
@@ -131,12 +131,12 @@
                                     focus:border-sky-500 focus:ring-2 focus:ring-sky-100">
 
                             <option value="">Semua Pilar</option>
-                            <option value="Pilar 1">Pilar 1</option>
-                            <option value="Pilar 2">Pilar 2</option>
-                            <option value="Pilar 3">Pilar 3</option>
-                            <option value="Pilar 4">Pilar 4</option>
-                            <option value="Pilar 5">Pilar 5</option>
-                            <option value="Pilar 6">Pilar 6</option>
+                            <option value="1">Pilar 1</option>
+                            <option value="2">Pilar 2</option>
+                            <option value="3">Pilar 3</option>
+                            <option value="4">Pilar 4</option>
+                            <option value="5">Pilar 5</option>
+                            <option value="6">Pilar 6</option>
 
                         </select>
 

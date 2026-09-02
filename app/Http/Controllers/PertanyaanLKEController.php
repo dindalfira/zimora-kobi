@@ -3,14 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Models\BuktiDukungLKE;
+use App\Models\Notification;
 use App\Models\PemeriksaanLKE;
 use App\Models\PertanyaanLKE;
 use App\Models\RiwayatPenilaianLKE;
 use App\Models\SubPilarLKE;
 use App\Models\User;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 
 class PertanyaanLKEController extends Controller
@@ -381,6 +382,47 @@ class PertanyaanLKEController extends Controller
                 'status_pertanyaan' => 
                     $validated['status_pemeriksaan']
             ]);
+
+           
+            // Jika hasil pemeriksaan adalah PERBAIKAN
+            if ($validated['status_pemeriksaan'] === 'perbaikan') {
+
+                // Cari user Pilar
+                $pilar = User::where('role', 'pilar')
+                    // ->where('pilar', $pertanyaan->subPilar->pilar)
+                    ->get();
+
+                foreach ($pilar as $user) {
+
+                    // Cegah notifikasi duplikat
+                    $sudahAdaNotif = Notification::where('user_id', $user->id)
+                        ->where('id_pertanyaan', $pertanyaan->id)
+                        ->where('tipe', 'pemeriksaan_perbaikan')
+                        ->where('dibaca', false)
+                        ->exists();
+
+                    if (!$sudahAdaNotif) {
+                        Notification::create([
+                            'user_id' => $user->id,
+                            'tipe' => 'pemeriksaan_perbaikan',
+                            'judul' => 'Bukti Dukung Perlu Perbaikan',
+                            'pesan' => 'Hasil pemeriksaan pada pertanyaan "' . 
+                                ($pertanyaan->id_pertanyaan ?? "") . " " .
+                                ($pertanyaan->nama_pertanyaan ?? 'Pertanyaan LKE') .
+                                '" memerlukan perbaikan.' .
+                                ($request->catatan
+                                    ? ' Catatan pemeriksa: ' . $request->catatan
+                                    : ''),
+                            'id_pilar' => $pertanyaan->subPilar->pilar ?? null,
+                            'id_pertanyaan' => $pertanyaan->id,
+                            'url' => route('lke.detail', $pertanyaan->id_pertanyaan,
+                            ),
+                            'dibaca' => false,
+                            'dibaca_at' => null,
+                        ]);
+                    }
+                }
+            }           
 
             return redirect()
                 ->route('lke.detail', $pertanyaan->id_pertanyaan)

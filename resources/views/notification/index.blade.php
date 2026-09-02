@@ -83,11 +83,27 @@
 
                         @if($item->tipe === 'perbaikan_bukti')
 
-                            <i data-lucide="triangle-alert" class="h-5 w-5"></i>
+                            {{-- <i data-lucide="triangle-alert" class="h-5 w-5"></i> --}}
+
+                            <svg xmlns="http://www.w3.org/2000/svg" 
+                                width="18" height="18" viewBox="0 0 24 24" fill="none" 
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" 
+                                class="lucide lucide-triangle-alert-icon lucide-triangle-alert">
+                                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/>
+                                <path d="M12 9v4"/><path d="M12 17h.01"/>
+                            </svg>
 
                         @elseif($item->tipe === 'siap_diperiksa')
 
-                            <i data-lucide="file-check-2" class="h-5 w-5"></i>
+                            {{-- <i data-lucide="file-check-2" class="h-5 w-5"></i> --}}
+
+                            <svg xmlns="http://www.w3.org/2000/svg" 
+                                width="24" height="24" viewBox="0 0 24 24" fill="none" 
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" 
+                                class="lucide lucide-file-check-icon lucide-file-check">
+                                <path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/>
+                                <path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="m9 15 2 2 4-4"/>
+                            </svg>
 
                         @elseif($item->tipe === 'siap_diperiksa_ulang')
 

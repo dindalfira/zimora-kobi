@@ -239,7 +239,7 @@ Route::middleware('auth')->group(function () {
     Route::get(
         '/download/dokumentasi/{id}',
         [UploadController::class, 'downloadDokumentasi']
-    )->middleware('role:admin,pilar,sekretaris,bps')
+    )->middleware('role:admin,pilar,sekretaris')
      ->name('download.dokumentasi');
 
     // notifikasi
@@ -265,6 +265,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/pengaturan', function () {
         return view('pengaturan');
     })->middleware('role:admin')
-        ->name('pengaturan');
+      ->name('pengaturan');
 
 });

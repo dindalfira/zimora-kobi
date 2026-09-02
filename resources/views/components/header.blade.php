@@ -8,41 +8,26 @@
                 ->count();
         @endphp
 
-
+    @if(Auth::user()->role !== 'bps')
         <a
             href="{{ route('notification.index') }}"
             class="relative flex h-10 w-10 items-center justify-center rounded-lg
                 text-gray-600 hover:text-sky-600"
         >
             <i data-lucide="bell"
-                        class="h-5 w-5 transition"></i>
+                        class="h-5 w-5 transition border-amber-600"></i>
 
             @if($jumlahNotif > 0)
                 <span
-                    class="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center
-                        justify-center rounded-full bg-red-500 px-1 text-[10px]
+                    class="relative -left-2 -top-2 flex h-3 min-w-3 items-center
+                        justify-center rounded-full bg-red-500  text-[10px]
                         font-bold text-white"
                 >
                     {{ $jumlahNotif > 99 ? '99+' : $jumlahNotif }}
                 </span>
             @endif
         </a>
-
-        {{-- <button
-            type="button"
-            class="relative flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 "
-            title="Notifikasi"
-        >
-            <i
-                data-lucide="bell"
-                class="h-5 w-5 transition hover:text-sky-800"
-            ></i>
-
-          
-            <span
-                class="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-red-500"
-            ></span>
-        </button> --}}
+    @endif
 
         <button
             type="button"
