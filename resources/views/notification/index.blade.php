@@ -4,7 +4,7 @@
 
 @section('content')
 
-<div class="space-y-5 rounded-xl border border-slate-200 bg-white p-5 shadow-sm h-[720px]">
+<div class="space-y-5 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
 
     {{-- =========================================================
         HEADER
@@ -175,7 +175,7 @@
 
                             @endif
 
-                            @if($item->id_pertanyaan)
+                            {{-- @if($item->id_pertanyaan)
 
                                 <span
                                     class="inline-flex items-center gap-1
@@ -187,7 +187,7 @@
                                     Pertanyaan {{ $item->id_pertanyaan }}
                                 </span>
 
-                            @endif
+                            @endif --}}
 
                             @if($item->created_at)
 

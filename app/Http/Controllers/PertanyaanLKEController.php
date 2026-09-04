@@ -9,6 +9,7 @@ use App\Models\PertanyaanLKE;
 use App\Models\RiwayatPenilaianLKE;
 use App\Models\SubPilarLKE;
 use App\Models\User;
+use App\Services\PertanyaanLkeStatusService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,6 +17,12 @@ use Illuminate\Validation\ValidationException;
 
 class PertanyaanLKEController extends Controller
 {
+    protected PertanyaanLkeStatusService $statusService;
+
+    public function __construct(PertanyaanLkeStatusService $statusService)
+    {
+        $this->statusService = $statusService;
+    }
     public function index()
     {
         $pertanyaan = PertanyaanLKE::with('subPilar','buktiDukung')
@@ -24,17 +31,8 @@ class PertanyaanLKEController extends Controller
 
         foreach ($pertanyaan as $item) {
 
-            // Status dihitung langsung dari kondisi sistem
-            $item->status_sistem = $this->getStatusPertanyaan($item);
-
-
-
-            // Kalau tetap ingin sinkronisasi ke database
-            if ($item->status_pertanyaan !== $item->status_sistem) {
-                $item->update([
-                    'status_pertanyaan' => $item->status_sistem,
-                ]); 
-            }
+             $this->statusService->updateStatus($item);
+            $item->status_sistem = $item->status_pertanyaan;
         }
 
         return view('lke', compact('pertanyaan'));
@@ -49,43 +47,43 @@ class PertanyaanLKEController extends Controller
             'pemeriksaanTerakhir',
         ])->findOrFail($id_pertanyaan);
 
-
+        $status = $this->statusService->getStatus($pertanyaan);
         $semuaBuktiLengkap =
-            $this->buktiDukungLengkap($pertanyaan);
+            $this->statusService->isBuktiDukungLengkap($pertanyaan);
 
         $pemeriksaanTerakhir =
             $pertanyaan->pemeriksaanTerakhir;
 
-            dd([
-                'id_pertanyaan' => $pertanyaan->id_pertanyaan,
+            // dd([
+            //     'id_pertanyaan' => $pertanyaan->id_pertanyaan,
 
-                'bukti_dukung' => BuktiDukungLKE::where(
-                    'id_pertanyaan',
-                    $pertanyaan->id_pertanyaan
-                )->get([
-                    'id_bukti_dukung',
-                    'id_pertanyaan',
-                    'nama_bukti_dukung',
-                    'link_bukti_dukung',
-                ])->toArray(),
+            //     'bukti_dukung' => BuktiDukungLKE::where(
+            //         'id_pertanyaan',
+            //         $pertanyaan->id_pertanyaan
+            //     )->get([
+            //         'id_bukti_dukung',
+            //         'id_pertanyaan',
+            //         'nama_bukti_dukung',
+            //         'link_bukti_dukung',
+            //     ])->toArray(),
 
-                'jumlah_bukti' => BuktiDukungLKE::where(
-                    'id_pertanyaan',
-                    $pertanyaan->id_pertanyaan
-                )->count(),
+            //     'jumlah_bukti' => BuktiDukungLKE::where(
+            //         'id_pertanyaan',
+            //         $pertanyaan->id_pertanyaan
+            //     )->count(),
 
-                'jumlah_bukti_terisi' => BuktiDukungLKE::where(
-                    'id_pertanyaan',
-                    $pertanyaan->id_pertanyaan
-                )
-                ->whereNotNull('link_bukti_dukung')
-                ->where('link_bukti_dukung', '!=', '')
-                ->count(),
+            //     'jumlah_bukti_terisi' => BuktiDukungLKE::where(
+            //         'id_pertanyaan',
+            //         $pertanyaan->id_pertanyaan
+            //     )
+            //     ->whereNotNull('link_bukti_dukung')
+            //     ->where('link_bukti_dukung', '!=', '')
+            //     ->count(),
 
-                'semuaBuktiLengkap' => $semuaBuktiLengkap,
+            //     'semuaBuktiLengkap' => $semuaBuktiLengkap,
 
-                'pemeriksaanTerakhir' => $pemeriksaanTerakhir,
-            ]);
+            //     'pemeriksaanTerakhir' => $pemeriksaanTerakhir,
+            // ]);
         /*
         |--------------------------------------------------------------------------
         | TENTUKAN TAHAP
@@ -130,7 +128,9 @@ class PertanyaanLKEController extends Controller
             compact(
                 'pertanyaan',
                 'tahap',
-                'semuaBuktiLengkap'
+                'semuaBuktiLengkap', 
+                'status',
+                'semuaBuktiLengkap',
             )
         );
     }
@@ -302,7 +302,7 @@ class PertanyaanLKEController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $semuaBuktiLengkap = $this->buktiDukungLengkap($pertanyaan);
+        $semuaBuktiLengkap = $this->statusService->isBuktiDukungLengkap($pertanyaan);
 
         /*
         |--------------------------------------------------------------------------
@@ -702,148 +702,172 @@ class PertanyaanLKEController extends Controller
     // }
 
     // menentukan tanggal
-    private function getTanggalWaktu($waktu)
-    {
-        if (empty($waktu)) {
-            return [];
-        }
+    // private function getTanggalWaktu($waktu)
+    // {
+    //     if (empty($waktu)) {
+    //         return [];
+    //     }
 
-        $waktu = strtolower(trim($waktu));
+    //     $waktu = strtolower(trim($waktu));
 
-        $isNPlusOne = str_contains($waktu, '(n+1)');
+    //     $isNPlusOne = str_contains($waktu, '(n+1)');
 
-        $tahun = now()->year + ($isNPlusOne ? 1 : 0);
+    //     $tahun = now()->year + ($isNPlusOne ? 1 : 0);
 
-        $periode = trim(
-            str_replace('(n+1)', '', $waktu)
-        );
+    //     $periode = trim(
+    //         str_replace('(n+1)', '', $waktu)
+    //     );
 
-        return match ($periode) {
+    //     return match ($periode) {
 
-            'triwulan i' => [
-                Carbon::create($tahun, 1, 31)
-            ],
+    //         'triwulan i' => [
+    //             Carbon::create($tahun, 1, 31)
+    //         ],
 
-            'triwulan ii' => [
-                Carbon::create($tahun, 4, 30)
-            ],
+    //         'triwulan ii' => [
+    //             Carbon::create($tahun, 4, 30)
+    //         ],
 
-            'triwulan iii' => [
-                Carbon::create($tahun, 7, 31)
-            ],
+    //         'triwulan iii' => [
+    //             Carbon::create($tahun, 7, 31)
+    //         ],
 
-            'triwulan iv' => [
-                Carbon::create($tahun, 10, 31)
-            ],
+    //         'triwulan iv' => [
+    //             Carbon::create($tahun, 10, 31)
+    //         ],
 
-            'triwulan i-iv' => [
-                Carbon::create($tahun, 12, 15)
-            ],
+    //         'triwulan i-iv' => [
+    //             Carbon::create($tahun, 12, 15)
+    //         ],
 
-            'triwulan ii-iv' => [
-                Carbon::create($tahun, 12, 15)
-            ],
+    //         'triwulan ii-iv' => [
+    //             Carbon::create($tahun, 12, 15)
+    //         ],
 
-            'triwulan i/ii/iii/iv' => [
-                Carbon::create($tahun, 12, 15)
-            ],
+    //         'triwulan i/ii/iii/iv' => [
+    //             Carbon::create($tahun, 12, 15)
+    //         ],
 
-            'triwulan iv atau triwulan i' => [
-                Carbon::create($tahun, 1, 31)
-            ],
+    //         'triwulan iv atau triwulan i' => [
+    //             Carbon::create($tahun, 1, 31)
+    //         ],
 
-            default => [],
-        };
-    }
+    //         default => [],
+    //     };
+    // }
 
-    private function buktiDukungLengkap($pertanyaan)
-    {
-        $buktiDukung = BuktiDukungLKE::where(
-            'id_pertanyaan',
-            $pertanyaan->id_pertanyaan
-        )->get();
+    // private function buktiDukungLengkap($pertanyaan)
+    // {
+    //     $buktiDukung = BuktiDukungLKE::where(
+    //         'id_pertanyaan',
+    //         $pertanyaan->id_pertanyaan
+    //     )->get();
 
-        if ($buktiDukung->isEmpty()) {
-            return false;
-        }
+    //     if ($buktiDukung->isEmpty()) {
+    //         return false;
+    //     }
 
-        $total = $buktiDukung->count();
+    //     $total = $buktiDukung->count();
 
-        $terisi = $buktiDukung->filter(function ($item) {
-            return !empty($item->link_bukti_dukung);
-        })->count();
+    //     $terisi = $buktiDukung->filter(function ($item) {
+    //         return !empty($item->link_bukti_dukung);
+    //     })->count();
 
-        return $terisi === $total;
-    }
+    //     return $terisi === $total;
+    // }
 
-    private function getStatusPertanyaan($pertanyaan)
-    {
-        // 1. Sudah dinilai
-        if (!is_null($pertanyaan->nilai_pertanyaan)) {
-            return 'dinilai';
-        }
+    // private function getStatusPertanyaan($pertanyaan)
+    // {
+        
+    //     // Refresh data terbaru dari database
+    //     $pertanyaan->refresh();
 
-        // 2. Cek pemeriksaan terakhir
-        $pemeriksaan = PemeriksaanLKE::where(
-            'pertanyaan_lke_id',
-            $pertanyaan->id_pertanyaan
-        )
-        ->latest('diperiksa_pada')
-        ->first();
+    //     // 1. Sudah dinilai
+    //     if (!is_null($pertanyaan->nilai_pertanyaan)) {
+    //         return 'dinilai';
+    //     }
 
-        if ($pemeriksaan) {
+    //     // 2. Cek pemeriksaan terakhir
+    //     $pemeriksaan = PemeriksaanLKE::where(
+    //         'pertanyaan_lke_id',
+    //         $pertanyaan->id_pertanyaan
+    //     )
+    //     ->latest('diperiksa_pada')
+    //     ->first();
 
-            if ($pemeriksaan->status_pemeriksaan === 'sesuai') {
-                return 'sesuai';
-            }
+    //     if ($pemeriksaan) {
 
-            if ($pemeriksaan->status_pemeriksaan === 'perbaikan') {
-                return 'perbaikan';
-            }
-        }
+    //         if ($pemeriksaan->status_pemeriksaan === 'sesuai') {
+    //             return 'sesuai';
+    //         }
 
-        // 3. Bukti dukung lengkap
-        if ($this->buktiDukungLengkap($pertanyaan)) {
-            return 'pemeriksaan';
-        }
+    //         if ($pemeriksaan->status_pemeriksaan === 'perbaikan') {
+    //             return 'perbaikan';
+    //         }
+    //     }
 
-        // 4. Terlambat
-        $tanggalWaktu = $this->getTanggalWaktu($pertanyaan->waktu);
+    //     // 3. Bukti dukung lengkap
+    //     if ($this->buktiDukungLengkap($pertanyaan)) {
+    //         return 'pemeriksaan';
+    //     }
 
-        if (!empty($tanggalWaktu)) {
+    //     // 4. Terlambat
+    //     $tanggalWaktu = $this->getTanggalWaktu($pertanyaan->waktu);
 
-            $tanggalSekarang = now()->startOfDay();
-            $tanggalTarget = $tanggalWaktu[0];
+    //     if (!empty($tanggalWaktu)) {
 
-            if ($tanggalSekarang->gt($tanggalTarget)) {
-                return 'terlambat';
-            }
-        }
+    //         $tanggalSekarang = now()->startOfDay();
+    //         $tanggalTarget = $tanggalWaktu[0];
 
-        // 5. Default
-        return 'belum';
-    }
+    //         if ($tanggalSekarang->gt($tanggalTarget)) {
+    //             return 'terlambat';
+    //         }
+    //     }
 
-    public function updateStatusPertanyaan()
-    {
-        $pertanyaan = PertanyaanLKE::all();
+    //     // 5. Default
+    //     return 'belum';
+    // }
 
-        foreach ($pertanyaan as $item) {
+    // public function updateStatusPertanyaan()
+    // {
+    //     $pertanyaan = PertanyaanLKE::all();
 
-            $statusBaru = $this->getStatusPertanyaan($item);
+    //     foreach ($pertanyaan as $item) {
 
-            if ($item->status_pertanyaan !== $statusBaru) {
+    //         $statusBaru = $this->getStatusPertanyaan($item);
 
-                $item->update([
-                    'status_pertanyaan' => $statusBaru,
-                ]);
-            }
-        }
+    //         if ($item->status_pertanyaan !== $statusBaru) {
 
-        return back()->with(
-            'success',
-            'Status pertanyaan berhasil diperbarui.'
-        );
-    }
+    //             $item->update([
+    //                 'status_pertanyaan' => $statusBaru,
+    //             ]);
+    //         }
+    //     }
+
+    //     return back()->with(
+    //         'success',
+    //         'Status pertanyaan berhasil diperbarui.'
+    //     );
+    // }
+
+    //     public function cekStatusPertanyaan($id)
+    // {
+    //     $pertanyaan = PertanyaanLKE::findOrFail($id);
+
+    //     $statusBaru = $this->getStatusPertanyaan($pertanyaan);
+
+    //     // Sinkronkan database
+    //     if ($pertanyaan->status_pertanyaan !== $statusBaru) {
+    //         $pertanyaan->update([
+    //             'status_pertanyaan' => $statusBaru,
+    //         ]);
+    //     }
+
+    //     return response()->json([
+    //         'success' => true,
+    //         'status' => $statusBaru,
+    //     ]);
+    // }
 
 }
+

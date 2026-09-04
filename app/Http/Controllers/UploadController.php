@@ -6,15 +6,19 @@ use App\Models\BuktiDukungLKE;
 use App\Models\Notification;
 use App\Models\PelaksanaanKegiatan;
 use App\Models\User;
+use App\Services\PertanyaanLkeStatusService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 
 class UploadController extends Controller
 {
-    /**
-     * Upload bukti dukung TEST
-     */
+    protected PertanyaanLkeStatusService $statusService;
+
+    public function __construct(PertanyaanLkeStatusService $statusService)
+    {
+        $this->statusService = $statusService;
+    }
     public function uploadBuktiDukung(Request $request)
     {
         $request->validate([
@@ -104,6 +108,9 @@ class UploadController extends Controller
 
             if ($semuaLengkap) {
 
+                // update status
+                 $status = $this->statusService->updateStatus($pertanyaan);
+
                 /*
                 |--------------------------------------------------------------------------
                 | CEGAH NOTIFIKASI DUPLIKAT
@@ -177,6 +184,8 @@ class UploadController extends Controller
             'file_url' => asset('storage/' . $bukti->link_bukti_dukung),
             'time_uploaded' => $bukti->time_uploaded,
             'time_updated' => $bukti->time_updated,
+            'isUpload' => $isUpload,
+            'status' => $status,
         ]);
     }
     // public function uploadBuktiDukung(Request $request)

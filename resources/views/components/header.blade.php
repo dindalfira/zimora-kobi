@@ -19,7 +19,7 @@
 
             @if($jumlahNotif > 0)
                 <span
-                    class="relative -left-2 -top-2 flex h-3 min-w-3 items-center
+                    class="relative -left-2 -top-2 flex h-4 min-w-4 items-center
                         justify-center rounded-full bg-red-500  text-[10px]
                         font-bold text-white"
                 >

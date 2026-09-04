@@ -69,7 +69,7 @@
         {{-- LKE --}}
         <a href="{{ route('lke') }}"
            class="flex items-center rounded-lg px-4 py-2.5 text-xs font-bold tracking-wide transition
-           {{ request()->routeIs('lke', 'detail-lke')
+           {{ request()->routeIs('lke', 'lke.detail')
                 ? 'bg-sky-700 text-white'
                 : 'text-white/70 hover:bg-white/10 hover:text-white' }}">
 

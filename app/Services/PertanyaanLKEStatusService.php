@@ -164,6 +164,11 @@ class PertanyaanLkeStatusService
         return $terisi === $total;
     }
 
+    public function isBuktiDukungLengkap(PertanyaanLKE $pertanyaan): bool
+    {
+        return $this->buktiDukungLengkap($pertanyaan);
+    }
+
 
     /**
      * Menentukan tanggal berdasarkan kolom waktu.

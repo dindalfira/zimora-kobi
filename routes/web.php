@@ -176,6 +176,11 @@ Route::middleware('auth')->group(function () {
     )->middleware('role:admin,sekretaris')
      ->name('lke.pemeriksaan.simpan');
 
+    Route::get(
+        '/pertanyaan/{id}/status',
+        [PertanyaanLKEController::class, 'cekStatusPertanyaan']
+    )->name('pertanyaan.status');
+
     // Route::post(
     //     '/detail-lke/bukti-dukung/upload',
     //     [PertanyaanLKEController::class, 'uploadBuktiDukung']
