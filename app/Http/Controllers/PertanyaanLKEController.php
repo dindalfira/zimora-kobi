@@ -15,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 
+
 class PertanyaanLKEController extends Controller
 {
     protected PertanyaanLkeStatusService $statusService;
@@ -27,7 +28,7 @@ class PertanyaanLKEController extends Controller
     {
         $pertanyaan = PertanyaanLKE::with('subPilar','buktiDukung')
             ->orderBy('id_subpilar')
-            ->get();
+            ->get(); 
 
         foreach ($pertanyaan as $item) {
 

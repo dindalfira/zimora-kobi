@@ -9,7 +9,7 @@ use App\Models\RiwayatPenilaianLKE;
 use App\Models\SubPilarLKE;
 use App\Services\PenilaianLKEService;
 use Carbon\Carbon;
-use Illuminate\Http\Request;
+use Illuminate\Http\Request; 
 use Illuminate\Support\Facades\Auth;
 
 class LkeController extends Controller
@@ -93,7 +93,8 @@ class LkeController extends Controller
                 return [
                     $subpilarItem->id_subpilar => $nilaiSubpilar,
                 ];
-            });
+            }); 
+            
 
 
             /*

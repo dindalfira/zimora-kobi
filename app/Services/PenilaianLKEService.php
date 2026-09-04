@@ -95,7 +95,7 @@ class PenilaianLkeService
                     'persentase' => $persentasePilar,
                 ];
             })
-            ->sortKeys()
+            ->sortKeys() 
             ->values();
     }
 }

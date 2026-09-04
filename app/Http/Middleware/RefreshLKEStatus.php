@@ -18,6 +18,6 @@ class RefreshLKEStatus
     {
         app(PertanyaanLkeStatusService::class)->updateAllStatus();
 
-        return $next($request);
+        return $next($request); 
     }
 }
